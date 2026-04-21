@@ -1,0 +1,362 @@
+:root {
+  --bg: #0b0f17;
+  --card: #111827;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #60a5fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 600px at 20% 0%, rgba(96, 165, 250, 0.18), transparent),
+    var(--bg);
+  color: var(--text);
+}
+
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px 16px 48px;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.headerActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  user-select: none;
+}
+
+.toggle input {
+  accent-color: var(--accent);
+}
+
+.select {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+/* Improve readability of the opened dropdown on Linux themes where
+   <option> inherits text color but uses a light system menu background. */
+.select option,
+.select optgroup {
+  background: #f9fafb;
+  color: #111827;
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.btn:hover:enabled {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.subtitle {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.error {
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.clickRow {
+  cursor: pointer;
+}
+
+.clickRow:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.clickRowSelected td {
+  background: rgba(96, 165, 250, 0.1);
+}
+
+.filmDetailRow td {
+  border-bottom: 1px solid var(--border);
+}
+
+.filmDetailCell {
+  padding: 12px 8px !important;
+  vertical-align: top;
+  background: rgba(0, 0, 0, 0.14);
+}
+
+.filmDetailCard {
+  margin: 0;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.filmName {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 600;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pill.subtle {
+  color: var(--muted);
+}
+
+.offers {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.offer {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 10px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+}
+
+.offer:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(96, 165, 250, 0.06);
+  transform: translateY(-1px);
+}
+
+.offerTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.offerPrice {
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.offerStore {
+  color: var(--muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+.offerBottom {
+  margin-top: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.offerMeta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.chartWrap {
+  margin: 16px 0 20px;
+}
+
+.chartTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.chartSvg {
+  width: 100%;
+  max-height: 260px;
+  display: block;
+}
+
+.chartAxis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chartAxisLabel {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.chartLine {
+  stroke: var(--accent);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chartDot {
+  fill: var(--accent);
+  stroke: var(--card);
+  stroke-width: 1;
+}
+
+.chartEmpty {
+  margin: 12px 0 4px;
+  font-size: 14px;
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.detailTitle {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-weight: 800;
+  font-size: 16px;
+}
+
+.offerList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.offerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
+}
+
+.offerRow:hover {
+  border-color: rgba(96, 165, 250, 0.55);
+  background: rgba(96, 165, 250, 0.06);
+  transform: translateY(-1px);
+}
+
+.offerRowLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.offerRowPrice {
+  font-weight: 900;
+  color: var(--accent);
+}
+
+.offerRowMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.offerRowRight {
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .offers {
+    grid-template-columns: 1fr;
+  }
+}
+

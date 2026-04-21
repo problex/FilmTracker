@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: filmtracker
+      POSTGRES_PASSWORD: filmtracker
+      POSTGRES_DB: filmtracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - filmtracker_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U filmtracker -d filmtracker"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    environment:
+      DATABASE_URL: postgres://filmtracker:filmtracker@db:5432/filmtracker
+      PORT: 4000
+      LISTEN_HOST: 0.0.0.0
+      WEB_ORIGIN: http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "4000:4000"
+
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    environment:
+      VITE_PREVIEW_API_PROXY: http://server:4000
+    depends_on:
+      - server
+    ports:
+      - "5173:5173"
+
+volumes:
+  filmtracker_pg:
+
