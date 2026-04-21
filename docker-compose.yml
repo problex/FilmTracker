@@ -3,7 +3,8 @@ services:
     image: postgres:16
     environment:
       POSTGRES_USER: filmtracker
-      POSTGRES_PASSWORD: filmtracker
+      # Set POSTGRES_PASSWORD in repo-root `.env` (see `.env.example`). Fallback is dev-only.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-filmtracker}
       POSTGRES_DB: filmtracker
     ports:
       - "5432:5432"
@@ -20,7 +21,7 @@ services:
       context: .
       dockerfile: server/Dockerfile
     environment:
-      DATABASE_URL: postgres://filmtracker:filmtracker@db:5432/filmtracker
+      DATABASE_URL: postgres://filmtracker:${POSTGRES_PASSWORD:-filmtracker}@db:5432/filmtracker
       PORT: 4000
       LISTEN_HOST: 0.0.0.0
       WEB_ORIGIN: http://localhost:5173
