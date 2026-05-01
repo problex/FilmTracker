@@ -15,6 +15,37 @@ import { randomUUID } from "node:crypto";
 
 type UpsertedListing = { id: string };
 
+async function ensureFilmsSeeded() {
+  const db = await dbPromise;
+
+  for (const f of filmSeeds) {
+    await db.query(
+      `
+      INSERT INTO films (id, brand, name, iso, type, process)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT (id) DO UPDATE SET
+        brand = EXCLUDED.brand,
+        name = EXCLUDED.name,
+        iso = EXCLUDED.iso,
+        type = EXCLUDED.type,
+        process = EXCLUDED.process
+      `,
+      [f.id, f.brand, f.name, f.iso, f.type, f.process]
+    );
+
+    for (const a of f.aliases) {
+      await db.query(
+        `
+        INSERT INTO film_aliases (film_id, alias)
+        VALUES ($1, $2)
+        ON CONFLICT (film_id, alias) DO NOTHING
+        `,
+        [f.id, a]
+      );
+    }
+  }
+}
+
 async function upsertListingAndSnapshot(params: {
   storeId: string;
   filmId: string;
@@ -124,6 +155,9 @@ async function markStoreListingsStale(storeId: string) {
 }
 
 export async function runScrape() {
+  // Ensure any newly-added films exist before scraping (FK constraint on listings.film_id).
+  await ensureFilmsSeeded();
+
   const adapters = [
     theCameraStoreAdapter,
     beauPhotoAdapter,
