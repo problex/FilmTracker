@@ -103,7 +103,7 @@ export function App() {
       });
       try {
         const [offersRes, histRes] = await Promise.all([
-          fetch(`${API_BASE}/api/films/${encodeURIComponent(selectedFilmId)}/offers`),
+          fetch(`${API_BASE}/api/films/${encodeURIComponent(selectedFilmId)}/offers?${q}`),
           fetch(`${API_BASE}/api/films/${encodeURIComponent(selectedFilmId)}/price-history?${q}`),
         ]);
         if (cancelled) return;
@@ -182,8 +182,9 @@ export function App() {
       {!error && films === null && <div className="card">Loading…</div>}
 
       {films && (
-        <div className="card">
-          <table className="table">
+        <div className="card cardTable">
+          <div className="tableWrap" role="region" aria-label="Film prices table">
+            <table className="table">
             <thead>
               <tr>
                 <th>Film</th>
@@ -327,6 +328,7 @@ export function App() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

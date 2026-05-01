@@ -23,12 +23,14 @@ body {
   background: radial-gradient(1200px 600px at 20% 0%, rgba(96, 165, 250, 0.18), transparent),
     var(--bg);
   color: var(--text);
+  -webkit-text-size-adjust: 100%;
 }
 
 .page {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 32px 16px 48px;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 
 .header {
@@ -36,12 +38,16 @@ body {
   align-items: baseline;
   justify-content: space-between;
   margin-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
 .headerActions {
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .toggle {
@@ -53,6 +59,8 @@ body {
   color: var(--text);
   border-radius: 10px;
   padding: 10px 12px;
+  min-height: 44px;
+  font-size: 16px;
   font-weight: 700;
   user-select: none;
 }
@@ -67,7 +75,10 @@ body {
   color: var(--text);
   border-radius: 10px;
   padding: 10px 12px;
+  min-height: 44px;
+  font-size: 16px;
   font-weight: 700;
+  max-width: 100%;
 }
 
 /* Improve readability of the opened dropdown on Linux themes where
@@ -85,14 +96,18 @@ body {
   color: var(--text);
   border-radius: 10px;
   padding: 10px 12px;
+  min-height: 44px;
+  font-size: 16px;
   font-weight: 700;
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
 }
 
-.btn:hover:enabled {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(96, 165, 250, 0.06);
+@media (hover: hover) {
+  .btn:hover:enabled {
+    border-color: rgba(96, 165, 250, 0.55);
+    background: rgba(96, 165, 250, 0.06);
+  }
 }
 
 .btn:disabled {
@@ -119,21 +134,41 @@ body {
   padding: 14px;
 }
 
+.cardTable {
+  padding: 14px 0;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding: 0 14px;
+}
+
 .error {
   border-color: rgba(239, 68, 68, 0.4);
 }
 
 .table {
   width: 100%;
+  min-width: 600px;
   border-collapse: collapse;
 }
 
 .clickRow {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
-.clickRow:hover td {
-  background: rgba(255, 255, 255, 0.02);
+.clickRow:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .clickRow:hover td {
+    background: rgba(255, 255, 255, 0.02);
+  }
 }
 
 .clickRowSelected td {
@@ -173,6 +208,8 @@ th {
   gap: 8px;
   align-items: center;
   font-weight: 600;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .pill {
@@ -207,16 +244,20 @@ th {
   transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
 }
 
-.offer:hover {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(96, 165, 250, 0.06);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .offer:hover {
+    border-color: rgba(96, 165, 250, 0.55);
+    background: rgba(96, 165, 250, 0.06);
+    transform: translateY(-1px);
+  }
 }
 
 .offerTop {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .offerPrice {
@@ -258,7 +299,8 @@ th {
 
 .chartSvg {
   width: 100%;
-  max-height: 260px;
+  height: auto;
+  max-height: min(260px, 50vh);
   display: block;
 }
 
@@ -302,6 +344,8 @@ th {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  min-width: 0;
   font-weight: 800;
   font-size: 16px;
 }
@@ -326,10 +370,12 @@ th {
   transition: border-color 120ms ease, transform 120ms ease, background 120ms ease;
 }
 
-.offerRow:hover {
-  border-color: rgba(96, 165, 250, 0.55);
-  background: rgba(96, 165, 250, 0.06);
-  transform: translateY(-1px);
+@media (hover: hover) {
+  .offerRow:hover {
+    border-color: rgba(96, 165, 250, 0.55);
+    background: rgba(96, 165, 250, 0.06);
+    transform: translateY(-1px);
+  }
 }
 
 .offerRowLeft {
@@ -357,6 +403,69 @@ th {
 @media (max-width: 900px) {
   .offers {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .title {
+    font-size: 22px;
+    line-height: 1.2;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .headerActions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .headerActions .select,
+  .headerActions .toggle {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .detailHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .detailHeader .btn {
+    width: 100%;
+  }
+
+  .offerRow {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .offerRowRight {
+    align-self: flex-end;
+  }
+
+  th,
+  td {
+    padding: 12px 8px;
+  }
+}
+
+@media (max-width: 380px) {
+  .page {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+
+  .tableWrap {
+    padding: 0 12px;
   }
 }
 
