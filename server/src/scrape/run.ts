@@ -236,8 +236,10 @@ export async function runScrape() {
     const STORE_BUDGET_MS = isBrowserStore ? 180_000 : 90_000;
     const FILM_TIMEOUT_MS = isBrowserStore ? 45_000 : 25_000;
     // One catalogue fetch covers every film, so this scales with catalogue size,
-    // not with how many films we track.
-    const CATALOG_TIMEOUT_MS = 60_000;
+    // not with how many films we track. Bounded work (a fixed page count plus a
+    // variation lookup per match), so it gets a generous ceiling — Beau Photo's
+    // 2,300-product catalogue alone takes ~55s.
+    const CATALOG_TIMEOUT_MS = 180_000;
     const useBulk = typeof adapter.fetchCandidatesForAllFilms === "function";
 
     if (useBulk) {

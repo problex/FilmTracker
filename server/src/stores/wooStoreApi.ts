@@ -16,11 +16,17 @@ import {
  * stock is an explicit boolean, and the whole catalogue is a couple of requests
  * rather than a search plus a product page per film.
  */
-type WooProduct = {
+export type WooProduct = {
   id: number;
   name: string;
   permalink: string;
   is_in_stock: boolean;
+  type?: string;
+  /** Human-readable variation label, e.g. "Film Format: 35mm – 36 exp." */
+  variation?: string;
+  categories?: { name: string }[];
+  tags?: { name: string }[];
+  variations?: { id: number; attributes?: { name: string; value: string }[] }[];
   prices: {
     /** Minor units, as a string — scaled by `currency_minor_unit`. */
     price: string;
@@ -36,7 +42,7 @@ const MAX_PAGES = 12;
  * WooCommerce HTML-encodes `name` — both named entities (`&amp;`) and numeric ones
  * (`&#8211;` en dash, `&#215;` multiplication sign, as seen in real listings).
  */
-function decodeEntities(s: string) {
+export function decodeEntities(s: string) {
   return s
     .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
     .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number.parseInt(dec, 10)))
@@ -51,7 +57,7 @@ function decodeEntities(s: string) {
  * `prices.price` is in minor units scaled by `currency_minor_unit`, so "1699" with
  * minor unit 2 is $16.99. Normalise to cents rather than assuming 2 decimals.
  */
-function toCadCents(prices: WooProduct["prices"]) {
+export function toCadCents(prices: WooProduct["prices"]) {
   if (!prices || typeof prices.price !== "string") return null;
   const raw = Number.parseInt(prices.price, 10);
   if (!Number.isFinite(raw)) return null;
@@ -61,10 +67,22 @@ function toCadCents(prices: WooProduct["prices"]) {
   return Math.round(raw * 10 ** (2 - minorUnit));
 }
 
-async function fetchCatalog(baseUrl: string): Promise<WooProduct[]> {
+/** Fetch one product (or variation) by id. */
+export async function fetchWooProduct(baseUrl: string, id: number): Promise<WooProduct | null> {
+  const u = new URL(`/wp-json/wc/store/v1/products/${id}`, baseUrl);
+  try {
+    const parsed = JSON.parse(await fetchText(u.toString())) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parsed as WooProduct;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchWooCatalog(baseUrl: string, maxPages = MAX_PAGES): Promise<WooProduct[]> {
   const out: WooProduct[] = [];
 
-  for (let page = 1; page <= MAX_PAGES; page += 1) {
+  for (let page = 1; page <= maxPages; page += 1) {
     const u = new URL("/wp-json/wc/store/v1/products", baseUrl);
     u.searchParams.set("per_page", String(PAGE_SIZE));
     u.searchParams.set("page", String(page));
@@ -146,7 +164,7 @@ export function createWooStoreApiAdapter(params: {
     },
 
     async fetchCandidatesForAllFilms(films: FilmSeed[]): Promise<CandidatesByFilmId> {
-      const products = await fetchCatalog(baseUrl);
+      const products = await fetchWooCatalog(baseUrl);
       const byFilmId: CandidatesByFilmId = new Map(films.map((f) => [f.id, []]));
 
       for (const p of products) {

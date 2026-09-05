@@ -1,124 +1,141 @@
 import type { FilmSeed } from "../catalog/films.js";
-import type { ListingCandidate, StoreAdapter } from "./types.js";
-import { fetchText, isBulkRoll, looksLike35mm, parseExposures, parseMoneyToCents, parsePackSize } from "./shared.js";
+import type { CandidatesByFilmId, ListingCandidate, StoreAdapter } from "./types.js";
+import { isBulkRoll, matchesFilmAliases, parseExposures, parsePackSize } from "./shared.js";
+import {
+  decodeEntities,
+  fetchWooCatalog,
+  fetchWooProduct,
+  toCadCents,
+  type WooProduct,
+} from "./wooStoreApi.js";
 
-function buildSearchUrl(baseUrl: string, q: string) {
-  const u = new URL("/", baseUrl);
-  u.searchParams.set("s", q);
-  u.searchParams.set("post_type", "product");
-  return u.toString();
+/**
+ * Beau Photo (WooCommerce Store API).
+ *
+ * Format detection can't come from the title here: listings are named
+ * "Candido 400 Colour Film", "Fujifilm Colour 200" — no "35mm" or "135" anywhere —
+ * so the usual `looksLike35mm()` title test rejects almost the whole catalogue.
+ *
+ * Instead:
+ *  - a "35mm" **tag** marks the product as (at least partly) 35mm, and every
+ *    product in the film categories carries tags;
+ *  - variable products expose a **Film Format** attribute per variation whose slug
+ *    is the authoritative format: `35mm`, `35mm-100-roll`, `120`, `4x5-25`,
+ *    `8x10-25`, `110`.
+ *
+ * Product `attributes` are not trustworthy — Candido is labelled "Colour Paper".
+ */
+
+const BASE_URL = "https://www.beauphoto.com";
+/** ~2,300 products at 100/page. */
+const MAX_PAGES = 30;
+
+/** Accessories that live in the film categories and carry film-ish tags. */
+const ACCESSORY_RX =
+  /\b(adapter|adaptor|holder|reel|tank|squeegee|changing bag|clips?|cassette|loader|developer|fixer|toner|stop bath|chemistry|scanner|album|sleeve|binder|page|frame)\b/i;
+
+/** Formats other than 35mm, used to veto mis-tagged simple products. */
+const NON_35MM_RX = /\b(120|110|220|4\s?x\s?5|8\s?x\s?10|instax|sheet film|large format)\b/i;
+
+function inFilmCategory(p: WooProduct) {
+  return (p.categories ?? []).some((c) => /film/i.test(c.name ?? ""));
 }
 
-function extractProductLinks(baseUrl: string, html: string) {
-  const links = new Set<string>();
-  // Typical WooCommerce search results: <a href=".../product/...">
-  const re = /href=\"(https?:\/\/www\.beauphoto\.com\/product\/[^\"?#]+\/)\"/gi;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(html))) {
-    links.add(new URL(m[1], baseUrl).toString());
-  }
-  return [...links];
+function hasTag(p: WooProduct, tag: string) {
+  return (p.tags ?? []).some((t) => decodeEntities(t.name ?? "").toLowerCase() === tag.toLowerCase());
 }
 
-function parseVariationsAttribute(html: string) {
-  const m = html.match(/data-product_variations=\"([^\"]+)\"/i);
-  if (!m?.[1]) return null;
-
-  const raw = m[1]
-    .replace(/&quot;/g, "\"")
-    .replace(/&#039;/g, "'")
-    .replace(/&amp;/g, "&");
-
-  try {
-    const variations = JSON.parse(raw);
-    return Array.isArray(variations) ? variations : null;
-  } catch {
-    return null;
-  }
+/** Film Format slug for a variation, e.g. "35mm" or "35mm-100-roll". */
+function formatSlug(v: NonNullable<WooProduct["variations"]>[number]) {
+  const attr = (v.attributes ?? []).find((a) => /film\s*format/i.test(a.name ?? ""));
+  return attr?.value?.toLowerCase() ?? null;
 }
 
-function pick35mmVariation(variations: any[]) {
-  for (const v of variations) {
-    const attrs = v?.attributes ?? {};
-    const fmt = attrs["attribute_pa_film-format"] ?? attrs["attribute_film-format"] ?? attrs["attribute_pa_format"];
-    if (typeof fmt === "string" && fmt.toLowerCase().includes("35mm")) return v;
-  }
-  return null;
-}
-
-function extract35mmOptionLabel(html: string) {
-  // Looks like: <option value="35mm - 36 exp.">35mm - 36 exp.</option>
-  const m = html.match(/<option[^>]*value=\"([^\">]*35mm[^\">]*)\"[^>]*>[^<]*<\/option>/i);
-  return m?.[1]?.trim() ?? null;
-}
-
-async function fetchCandidateFromProductPage(url: string): Promise<ListingCandidate | null> {
-  const html = await fetchText(url);
-
-  // Title: h1.product_title
-  const titleMatch = html.match(/<h1[^>]*class=\"[^\"]*product_title[^\"]*\"[^>]*>([\s\S]*?)<\/h1>/i);
-  const titleRaw = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, "").trim() : null;
-  if (!titleRaw) return null;
-
-  // Variation data contains price + in-stock.
-  const variations = parseVariationsAttribute(html);
-  if (!variations) return null;
-
-  const v35 = pick35mmVariation(variations);
-  if (!v35) return null;
-
-  const displayPrice = v35.display_price;
-  const inStock = Boolean(v35.is_in_stock);
-  const priceCadCents =
-    typeof displayPrice === "number" ? Math.round(displayPrice * 100) : parseMoneyToCents(String(displayPrice));
-  if (priceCadCents == null) return null;
-
-  const optionLabel = extract35mmOptionLabel(html) ?? titleRaw;
-
-  // Some products may not be film or may include other formats.
-  if (!looksLike35mm(optionLabel) && !looksLike35mm(titleRaw)) return null;
-
-  return {
-    url,
-    titleRaw: `${titleRaw} (${optionLabel})`,
-    priceCadCents,
-    currency: "CAD",
-    inStock,
-    packSize: parsePackSize(optionLabel) ?? parsePackSize(titleRaw),
-    exposures: parseExposures(optionLabel) ?? parseExposures(titleRaw),
-    isBulk: isBulkRoll(optionLabel) || isBulkRoll(titleRaw),
-    lastCheckedAt: new Date(),
-  };
+/** `35mm` and `35mm-100-roll` are in scope; `120`/`110`/`4x5-25`/`8x10-25` are not. */
+function is35mmSlug(slug: string | null) {
+  return slug != null && /^35mm\b/.test(slug);
 }
 
 export const beauPhotoAdapter: StoreAdapter = {
   storeId: "beau-photo",
   storeName: "Beau Photo",
-  baseUrl: "https://www.beauphoto.com",
+  baseUrl: BASE_URL,
 
-  async fetchCandidatesForFilm(film: FilmSeed) {
-    const q = `${film.aliases[0] ?? `${film.brand} ${film.name}`} 35mm`;
-    const searchUrl = buildSearchUrl(this.baseUrl, q);
-    const searchHtml = await fetchText(searchUrl);
-    const productUrls = extractProductLinks(this.baseUrl, searchHtml).slice(0, 10);
+  async fetchCandidatesForFilm(film: FilmSeed): Promise<ListingCandidate[]> {
+    const all = await this.fetchCandidatesForAllFilms!([film]);
+    return all.get(film.id) ?? [];
+  },
 
-    const candidates: ListingCandidate[] = [];
-    for (const u of productUrls) {
-      const c = await fetchCandidateFromProductPage(u).catch(() => null);
-      if (!c) continue;
+  async fetchCandidatesForAllFilms(films: FilmSeed[]): Promise<CandidatesByFilmId> {
+    const products = await fetchWooCatalog(BASE_URL, MAX_PAGES);
+    const byFilmId: CandidatesByFilmId = new Map(films.map((f) => [f.id, []]));
 
-      // relevance check
-      const t = c.titleRaw.toLowerCase();
-      const matches = film.aliases.some((a) => {
-        const aNorm = a.toLowerCase();
-        return aNorm.split(/\s+/).filter(Boolean).every((tok) => tok.length < 3 || t.includes(tok));
-      });
-      if (!matches) continue;
+    for (const p of products) {
+      if (!inFilmCategory(p) || !hasTag(p, "35mm")) continue;
 
-      candidates.push(c);
+      const name = decodeEntities(p.name ?? "");
+      if (!name || ACCESSORY_RX.test(name)) continue;
+
+      const film = films.find((f) => matchesFilmAliases(name, f.aliases));
+      if (!film) continue;
+
+      const variations = (p.variations ?? []).filter((v) => is35mmSlug(formatSlug(v)));
+
+      if (variations.length === 0) {
+        // Simple product: no per-format variation, so the tag is all we have.
+        // Veto anything whose name names a different format (the catalogue holds
+        // mis-tagged entries such as "Cinestill 400D 120" tagged 35mm).
+        if (p.variations && p.variations.length > 0) continue;
+        if (NON_35MM_RX.test(name)) continue;
+
+        const priceCadCents = toCadCents(p.prices);
+        if (priceCadCents == null || !p.permalink) continue;
+
+        byFilmId.get(film.id)?.push({
+          url: p.permalink,
+          titleRaw: name,
+          priceCadCents,
+          currency: "CAD",
+          inStock: Boolean(p.is_in_stock),
+          packSize: parsePackSize(name),
+          exposures: parseExposures(name),
+          isBulk: isBulkRoll(name),
+          lastCheckedAt: new Date(),
+        });
+        continue;
+      }
+
+      // Variable product: the parent price is only a range, so fetch each 35mm
+      // variation for its own price and stock.
+      for (const v of variations) {
+        const slug = formatSlug(v) ?? "";
+        const detail = await fetchWooProduct(BASE_URL, v.id);
+        if (!detail) continue;
+
+        const priceCadCents = toCadCents(detail.prices);
+        if (priceCadCents == null) continue;
+
+        const label = decodeEntities(detail.variation ?? "");
+        const titleRaw = label ? `${name} — ${label}` : name;
+        const url = detail.permalink ?? p.permalink;
+        if (!url) continue;
+
+        byFilmId.get(film.id)?.push({
+          url,
+          titleRaw,
+          priceCadCents,
+          currency: "CAD",
+          inStock: Boolean(detail.is_in_stock),
+          packSize: parsePackSize(titleRaw),
+          exposures: parseExposures(titleRaw),
+          // The slug is authoritative; the label writes it as "100′ roll" with a
+          // prime character that the title-based test doesn't catch.
+          isBulk: slug.includes("100-roll") || isBulkRoll(titleRaw),
+          lastCheckedAt: new Date(),
+        });
+      }
     }
 
-    return candidates;
+    return byFilmId;
   },
 };
-

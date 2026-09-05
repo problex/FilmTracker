@@ -172,13 +172,9 @@ export const filmSeeds: FilmSeed[] = [
     iso: 400,
     type: "bw",
     process: "bw",
-    aliases: [
-      "kentmere pan 400",
-      "kentmere 400",
-      "kentmere pan400",
-      "pan 400 kentmere",
-      "kentmere pan",
-    ],
+    // No bare "kentmere pan" alias: it matched Kentmere Pan 100 as well, so PAN 100
+    // listings were being priced as PAN 400 at four stores. Every alias must pin the ISO.
+    aliases: ["kentmere pan 400", "kentmere 400", "kentmere pan400", "pan 400 kentmere"],
   }
 ];
 
