@@ -150,8 +150,28 @@ export function looksLike35mm(title: string) {
 
 export function parsePackSize(title: string) {
   const t = title.toLowerCase();
-  const m = t.match(/\b(\d)\s*[- ]?\s*pack\b/);
-  if (m?.[1]) return Number(m[1]);
+
+  // "3 pack", "3-pack", "3pack", "3pk", "3 pk"
+  const pack = t.match(/\b(\d{1,2})\s*[-–]?\s*(?:packs?|pks?)\b/);
+  if (pack?.[1]) {
+    const n = Number(pack[1]);
+    if (n >= 1 && n <= 12) return n;
+  }
+
+  // "3 rolls", "5 Rolls Pack". Digits must sit directly against the word, so bulk
+  // lengths written "100ft roll" or "100' roll" are not read as a pack of 100.
+  const rolls = t.match(/\b(\d{1,2})\s*rolls\b/);
+  if (rolls?.[1]) {
+    const n = Number(rolls[1]);
+    if (n >= 2 && n <= 12) return n;
+  }
+
+  // Kodak sells a "ProPack" of 5.
+  if (/\bpro\s*pack\b/.test(t)) {
+    const n = t.match(/\bpro\s*pack[^0-9]{0,12}(\d{1,2})\b/)?.[1];
+    return n && Number(n) <= 12 ? Number(n) : 5;
+  }
+
   return null;
 }
 
@@ -189,6 +209,15 @@ export function parseExposures(title: string): 24 | 36 | null {
  * lowest-price display: flag it, then exclude it from headline prices.
  */
 export function parseExpiry(title: string): { isExpired: boolean; expiryLabel: string | null } {
+  // "Short dated" is near-expiry stock sold at the same kind of discount, so it is
+  // treated the same way: kept out of headline prices, surfaced as a deal.
+  if (/\bshort[\s-]?dated\b/i.test(title)) return { isExpired: true, expiryLabel: "short dated" };
+
+  // "Exp 12/2026" is an expiry date, but "36exp" is an exposure count — so the short
+  // form only counts when a date follows it.
+  const shortForm = title.match(/\bexp\.?\s*:?\s*(\d{1,2}\s*\/\s*\d{2,4})/i)?.[1];
+  if (shortForm) return { isExpired: true, expiryLabel: shortForm.replace(/\s+/g, "") };
+
   if (!/\bexpired?\b/i.test(title)) return { isExpired: false, expiryLabel: null };
 
   const label =
@@ -213,3 +242,7 @@ export function isBulkRoll(title: string) {
   );
 }
 
+
+/** Non-film products that sit in film categories and carry film-ish tags. */
+export const ACCESSORY_RX =
+  /\b(adapter|adaptor|holder|reel|tank|squeegee|changing bag|clips?|cassette|loader|developer|fixer|toner|stop bath|chemistry|scanner|album|sleeve|binder|frame|camera|disposable|single[- ]use|loupe|backpack|kit|filter|enlarger|easel|thermometer|funnel|graduate|apron|gloves)\b/i;

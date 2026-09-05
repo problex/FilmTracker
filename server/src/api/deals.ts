@@ -11,8 +11,10 @@ import type { ExpiredDealDto } from "./types.js";
  * buying though, so surface it separately — but only where it is actually a deal:
  *
  *  - in stock, since most expired listings are sold out and a deal you cannot buy is noise;
- *  - with a fresh price for the same film to compare against, because the discount is
- *    the product — "$21.99 expired" on its own means nothing;
+ *  - with a fresh price for the same film **and the same pack size** to compare
+ *    against, because the discount is the product — "$21.99 expired" on its own means
+ *    nothing, and pricing an expired 3-pack against a fresh single roll makes every
+ *    multipack look like a markup;
  *  - beyond a minimum discount, since barely-cheaper expired film is risk, not a saving.
  */
 const querySchema = z.object({
@@ -46,6 +48,8 @@ dealsRouter.get("/expired", async (req, res) => {
     url: string;
     title_raw: string;
     expiry_label: string | null;
+    pack_size: number;
+    is_bulk: boolean | number;
     price_cad_cents: number;
     fresh_price_cad_cents: number;
   }>(
@@ -62,15 +66,20 @@ dealsRouter.get("/expired", async (req, res) => {
       ) t
       WHERE rn = 1
     ),
-    -- Cheapest in-stock, non-expired offer per film: the price a deal is measured against.
+    -- Cheapest in-stock, non-expired offer per film *per comparable unit*: a single
+    -- roll is compared with single rolls, a 3-pack with 3-packs, bulk with bulk.
     fresh AS (
-      SELECT l.film_id, MIN(latest.price_cad_cents) AS fresh_price_cad_cents
+      SELECT
+        l.film_id,
+        COALESCE(l.pack_size, 1) AS pack_size,
+        l.is_bulk,
+        MIN(latest.price_cad_cents) AS fresh_price_cad_cents
       FROM latest
       JOIN listings l ON l.id = latest.listing_id
       WHERE l.is_expired = FALSE
         AND l.last_seen_at >= ${seenSinceSql}
         AND latest.in_stock = TRUE
-      GROUP BY l.film_id
+      GROUP BY l.film_id, COALESCE(l.pack_size, 1), l.is_bulk
     )
     SELECT
       l.film_id,
@@ -81,13 +90,18 @@ dealsRouter.get("/expired", async (req, res) => {
       l.url,
       l.title_raw,
       l.expiry_label,
+      COALESCE(l.pack_size, 1) AS pack_size,
+      l.is_bulk,
       latest.price_cad_cents,
       fresh.fresh_price_cad_cents
     FROM latest
     JOIN listings l ON l.id = latest.listing_id
     JOIN films f ON f.id = l.film_id
     JOIN stores s ON s.id = l.store_id
-    JOIN fresh ON fresh.film_id = l.film_id
+    JOIN fresh
+      ON fresh.film_id = l.film_id
+     AND fresh.pack_size = COALESCE(l.pack_size, 1)
+     AND fresh.is_bulk = l.is_bulk
     WHERE l.is_expired = TRUE
       AND l.last_seen_at >= ${seenSinceSql}
       AND latest.in_stock = TRUE
@@ -108,6 +122,8 @@ dealsRouter.get("/expired", async (req, res) => {
     url: r.url,
     titleRaw: r.title_raw,
     expiryLabel: r.expiry_label,
+    packSize: r.pack_size,
+    isBulk: Boolean(r.is_bulk),
     priceCadCents: r.price_cad_cents,
     freshPriceCadCents: r.fresh_price_cad_cents,
     discountPercent: Math.round(

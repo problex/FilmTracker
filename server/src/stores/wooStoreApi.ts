@@ -8,6 +8,7 @@ import {
   parseExpiry,
   parseExposures,
   parsePackSize,
+  ACCESSORY_RX,
 } from "./shared.js";
 
 /**
@@ -106,9 +107,13 @@ export async function fetchWooCatalog(baseUrl: string, maxPages = MAX_PAGES): Pr
   return out;
 }
 
-function toCandidate(p: WooProduct): ListingCandidate | null {
+function toCandidate(
+  p: WooProduct,
+  is35mm: (p: WooProduct, title: string) => boolean
+): ListingCandidate | null {
   const titleRaw = decodeEntities(p.name ?? "");
-  if (!titleRaw || !looksLike35mm(titleRaw)) return null;
+  if (!titleRaw || ACCESSORY_RX.test(titleRaw)) return null;
+  if (!is35mm(p, titleRaw)) return null;
 
   const priceCadCents = toCadCents(p.prices);
   if (priceCadCents == null) return null;
@@ -132,8 +137,18 @@ export function createWooStoreApiAdapter(params: {
   storeId: string;
   storeName: string;
   baseUrl: string;
+  /**
+   * Decide whether a product is 35mm. Defaults to reading the title, which is right
+   * when the store puts the format there. Stores that omit it from some titles pass
+   * their own classifier (see `filmWarehouse.ts`).
+   */
+  is35mm?: (p: WooProduct, title: string) => boolean;
+  /** Pages of 100 to walk; raise for large catalogues. */
+  maxPages?: number;
 }): StoreAdapter {
   const { storeId, storeName, baseUrl } = params;
+  const is35mm = params.is35mm ?? ((_p, title) => looksLike35mm(title));
+  const maxPages = params.maxPages ?? MAX_PAGES;
 
   return {
     storeId,
@@ -157,7 +172,7 @@ export function createWooStoreApiAdapter(params: {
 
       const out: ListingCandidate[] = [];
       for (const p of products) {
-        const candidate = toCandidate(p);
+        const candidate = toCandidate(p, is35mm);
         if (!candidate) continue;
         if (!matchesFilmAliases(candidate.titleRaw, film.aliases)) continue;
         out.push(candidate);
@@ -166,11 +181,11 @@ export function createWooStoreApiAdapter(params: {
     },
 
     async fetchCandidatesForAllFilms(films: FilmSeed[]): Promise<CandidatesByFilmId> {
-      const products = await fetchWooCatalog(baseUrl);
+      const products = await fetchWooCatalog(baseUrl, maxPages);
       const byFilmId: CandidatesByFilmId = new Map(films.map((f) => [f.id, []]));
 
       for (const p of products) {
-        const candidate = toCandidate(p);
+        const candidate = toCandidate(p, is35mm);
         if (!candidate) continue;
 
         const film = films.find((f) => matchesFilmAliases(candidate.titleRaw, f.aliases));

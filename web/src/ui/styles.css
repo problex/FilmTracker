@@ -563,3 +563,11 @@ th {
 .dealMeta {
   font-size: 12px;
 }
+
+.dealUnit {
+  font-size: 12px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 8px;
+}

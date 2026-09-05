@@ -30,6 +30,9 @@ export type ExpiredDealDto = {
   titleRaw: string;
   /** Expiry as written by the store ("01/2025", "May 2026"), when given. */
   expiryLabel: string | null;
+  /** 1 for a single roll; larger for a multipack. */
+  packSize: number;
+  isBulk: boolean;
   priceCadCents: number;
   /** Cheapest in-stock, non-expired offer for the same film. */
   freshPriceCadCents: number;

@@ -22,10 +22,25 @@ type ExpiredDeal = {
   url: string;
   titleRaw: string;
   expiryLabel: string | null;
+  packSize: number;
+  isBulk: boolean;
   priceCadCents: number;
   freshPriceCadCents: number;
   discountPercent: number;
 };
+
+/** "12/2026" reads as a date; "short dated" is already a phrase. */
+function expiryText(label: string | null) {
+  if (!label) return null;
+  return /\d/.test(label) ? `exp ${label}` : label;
+}
+
+/** A 3-pack at $37 is not worse than a single roll at $15 — say which it is. */
+function dealUnit(d: { packSize: number; isBulk: boolean }) {
+  if (d.isBulk) return "bulk roll";
+  if (d.packSize > 1) return `${d.packSize}-pack`;
+  return null;
+}
 
 type FilmWithTopOffers = {
   filmId: string;
@@ -239,10 +254,11 @@ export function App() {
                   {d.brand} {d.name}
                 </a>
                 <span className="dealPrice">{formatCad(d.priceCadCents)}</span>
+                {dealUnit(d) && <span className="dealUnit">{dealUnit(d)}</span>}
                 <span className="dealOff">{d.discountPercent}% off</span>
                 <span className="muted dealMeta">
                   {d.storeName}
-                  {d.expiryLabel ? ` · exp ${d.expiryLabel}` : ""} · fresh{" "}
+                  {expiryText(d.expiryLabel) ? ` · ${expiryText(d.expiryLabel)}` : ""} · fresh{" "}
                   {formatCad(d.freshPriceCadCents)}
                 </span>
               </li>

@@ -9,6 +9,7 @@ export const storeSeeds: StoreSeed[] = [
   { id: "aden-camera", name: "Aden Camera", province: "ON", baseUrl: "https://www.adencamera.com" },
   { id: "beau-photo", name: "Beau Photo", province: "BC", baseUrl: "https://www.beauphoto.com" },
   { id: "dons-photo", name: "Dons Photo", province: "CA", baseUrl: "https://donsphoto.com" },
+  { id: "film-warehouse", name: "FilmWarehouse", province: "CA", baseUrl: "https://filmwarehouse.ca" },
   { id: "downtown-camera", name: "DowntownCamera", province: "ON", baseUrl: "https://downtowncamera.com" },
   { id: "grainanation", name: "Graination", province: "ON", baseUrl: "https://graination.ca" },
   { id: "kerrisdale", name: "Kerrisdale Cameras", province: "BC", baseUrl: "https://kerrisdalecameras.com" },
