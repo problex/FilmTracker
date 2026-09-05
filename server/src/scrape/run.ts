@@ -155,6 +155,19 @@ async function upsertListingAndSnapshot(params: {
   );
 }
 
+/**
+ * Exposure count for a listing: what the title said, else the film's single-length
+ * default. Bulk rolls are excluded — they are sold by length, not exposures.
+ */
+function resolveExposures(
+  candidate: { exposures: 24 | 36 | null; isBulk: boolean },
+  filmId: string
+): 24 | 36 | null {
+  if (candidate.exposures != null) return candidate.exposures;
+  if (candidate.isBulk) return null;
+  return filmSeeds.find((f) => f.id === filmId)?.defaultExposures ?? null;
+}
+
 type StoreResult = {
   storeId: string;
   inserted: number;
@@ -272,7 +285,7 @@ export async function runScrape() {
               url: c.url,
               titleRaw: c.titleRaw,
               packSize: c.packSize,
-              exposures: c.exposures,
+              exposures: resolveExposures(c, film.id),
               isBulk: c.isBulk,
               isExpired: c.isExpired,
               expiryLabel: c.expiryLabel,
@@ -309,7 +322,7 @@ export async function runScrape() {
               url: c.url,
               titleRaw: c.titleRaw,
               packSize: c.packSize,
-              exposures: c.exposures,
+              exposures: resolveExposures(c, film.id),
               isBulk: c.isBulk,
               isExpired: c.isExpired,
               expiryLabel: c.expiryLabel,
@@ -403,7 +416,7 @@ export async function runScrape() {
           url: p.url,
           titleRaw: listing.titleRaw,
           packSize: listing.packSize,
-          exposures: listing.exposures,
+          exposures: resolveExposures({ exposures: listing.exposures, isBulk: listing.bulk }, p.filmId),
           isBulk: listing.bulk,
           isExpired: listing.isExpired,
           expiryLabel: listing.expiryLabel,

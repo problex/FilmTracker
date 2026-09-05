@@ -9,6 +9,13 @@ export type FilmSeed = {
   type: FilmType;
   process: FilmProcess | null;
   aliases: string[];
+  /**
+   * Exposure count to assume when a listing's title doesn't state one. Only set it
+   * for films sold in a single length — CineStill, for example, has no 24-exposure
+   * roll — otherwise a guess would put a listing under the wrong variant filter.
+   * Never applied to bulk rolls, which have no exposure count.
+   */
+  defaultExposures?: 24 | 36;
 };
 
 export const filmSeeds: FilmSeed[] = [
@@ -235,6 +242,8 @@ export const filmSeeds: FilmSeed[] = [
     type: "color",
     process: "c41",
     aliases: ["cinestill 800t", "cinestill 800 tungsten", "800tungsten", "cinestill 800"],
+    // CineStill is sold only as 36 exposures.
+    defaultExposures: 36,
   },
   {
     id: "cinestill-400d",
@@ -244,6 +253,8 @@ export const filmSeeds: FilmSeed[] = [
     type: "color",
     process: "c41",
     aliases: ["cinestill 400d", "400dynamic", "cinestill 400 dynamic", "cinestill 400"],
+    // CineStill is sold only as 36 exposures.
+    defaultExposures: 36,
   },
   {
     id: "cinestill-50d",
@@ -253,6 +264,8 @@ export const filmSeeds: FilmSeed[] = [
     type: "color",
     process: "c41",
     aliases: ["cinestill 50d", "50daylight", "cinestill 50 daylight", "cinestill 50"],
+    // CineStill is sold only as 36 exposures.
+    defaultExposures: 36,
   },
   {
     id: "ilford-fp4-125",
@@ -455,6 +468,8 @@ export const filmSeeds: FilmSeed[] = [
     process: "bw",
     // No bare "double-x": Flic Film sells its own Kodak Double-X respool.
     aliases: ["bwxx", "cinestill double-x", "cinestill double x"],
+    // CineStill is sold only as 36 exposures.
+    defaultExposures: 36,
   },
   {
     id: "flic-aurora-400",
