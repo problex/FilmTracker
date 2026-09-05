@@ -67,19 +67,22 @@ dealsRouter.get("/expired", async (req, res) => {
       WHERE rn = 1
     ),
     -- Cheapest in-stock, non-expired offer per film *per comparable unit*: a single
-    -- roll is compared with single rolls, a 3-pack with 3-packs, bulk with bulk.
+    -- roll is compared with single rolls, a 3-pack of 36exp with the same, bulk
+    -- with bulk. Exposure count matters too: a 36exp 3-pack measured against a
+    -- cheaper 24exp 3-pack understates the saving.
     fresh AS (
       SELECT
         l.film_id,
         COALESCE(l.pack_size, 1) AS pack_size,
         l.is_bulk,
+        COALESCE(l.exposures, 0) AS exposures,
         MIN(latest.price_cad_cents) AS fresh_price_cad_cents
       FROM latest
       JOIN listings l ON l.id = latest.listing_id
       WHERE l.is_expired = FALSE
         AND l.last_seen_at >= ${seenSinceSql}
         AND latest.in_stock = TRUE
-      GROUP BY l.film_id, COALESCE(l.pack_size, 1), l.is_bulk
+      GROUP BY l.film_id, COALESCE(l.pack_size, 1), l.is_bulk, COALESCE(l.exposures, 0)
     )
     SELECT
       l.film_id,
@@ -102,6 +105,7 @@ dealsRouter.get("/expired", async (req, res) => {
       ON fresh.film_id = l.film_id
      AND fresh.pack_size = COALESCE(l.pack_size, 1)
      AND fresh.is_bulk = l.is_bulk
+     AND fresh.exposures = COALESCE(l.exposures, 0)
     WHERE l.is_expired = TRUE
       AND l.last_seen_at >= ${seenSinceSql}
       AND latest.in_stock = TRUE

@@ -1,8 +1,14 @@
 import type { FilmSeed } from "../catalog/films.js";
 import type { ListingCandidate, StoreAdapter } from "./types.js";
+
+/** Longest plausible product title; anything longer is page text, not a product. */
+const MAX_TITLE_LEN = 160;
+/** Search results and category listings, which are not individual products. */
+const LISTING_PAGE_RX = /\/categories\/|[?&]qu=|[?&]q=|\/search\b/i;
 import {
   isBulkRoll,
   looksLike35mm,
+  matchesFilmAliases,
   parseExpiry,
   parseExposures,
   parseMoneyToCents,
@@ -74,6 +80,10 @@ export function createDakisShopAdapter(params: {
 
         const out: ListingCandidate[] = [];
         for (const url of unique) {
+          // Search and category pages are not products; scraping them yields a
+          // mash-up of every item shown.
+          if (LISTING_PAGE_RX.test(url)) continue;
+
           // quick relevance gate
           const lower = url.toLowerCase();
           if (!film.aliases.some((a) => lower.includes(a.split(" ")[0].toLowerCase()))) {
@@ -97,16 +107,15 @@ export function createDakisShopAdapter(params: {
           const inStock = looksInStockFromText(text);
           const mergedTitle = `${titleRaw}`;
 
-          // Ensure film match
-          const tLower = mergedTitle.toLowerCase();
-          const matches = film.aliases.some((a) =>
-            a
-              .toLowerCase()
-              .split(/\s+/)
-              .filter(Boolean)
-              .every((tok) => tok.length < 3 || tLower.includes(tok))
-          );
-          if (!matches) continue;
+          // A product title is a short line. This adapter extracts the whole rendered
+          // page when it cannot find one, which produced listings whose price came
+          // from the first product on a search page and whose pack size came from a
+          // different product further down — a 3-pack priced at the single-roll price.
+          // Every other store's titles top out around 110 characters.
+          if (mergedTitle.length > MAX_TITLE_LEN) continue;
+
+          // Ensure film match (shared matcher: ISO tokens on word boundaries).
+          if (!matchesFilmAliases(mergedTitle, film.aliases)) continue;
 
           out.push({
             url,
