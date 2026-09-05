@@ -1,10 +1,69 @@
 import type { FilmSeed } from "../catalog/films.js";
 import type { ListingCandidate, StoreAdapter } from "./types.js";
 
-/** Longest plausible product title; anything longer is page text, not a product. */
+/**
+ * Read the product from the rendered DOM rather than from page text.
+ *
+ * `document.title` carries the product name; the price lives in
+ * `.d-product-price-regular`. Deliberately not any `[class*="price"]` element —
+ * the page also renders `.warranty-price` ("Price: $49.99") for an extended-warranty
+ * upsell, which would silently replace the film price on every listing.
+ */
+const PRODUCT_EXTRACT_JS = `(() => {
+  var el = document.querySelector(".d-product-price-regular")
+        || document.querySelector(".d-product-price-regular-container");
+  var price = el ? (el.textContent || "").trim() : null;
+  var body = document.body ? (document.body.innerText || "") : "";
+  var inStock = /add to cart/i.test(body) && !/(out of stock|sold out|unavailable)/i.test(body);
+  return JSON.stringify({ title: document.title || "", price: price, inStock: inStock });
+})()`;
+
+/** Product pages that failed to render keep the platform's placeholder title. */
+const GENERIC_TITLE_RX = /^(shop product|product|shop)$/i;
+
+/**
+ * "Kodak Gold 200 Film 135-24 exp - Don's Photo" -> "Kodak Gold 200 Film 135-24 exp"
+ *
+ * Compared with punctuation and spacing removed: the seed name is "Dons Photo" while
+ * the page title writes "Don's Photo", so an exact match strips nothing.
+ */
+function stripStoreSuffix(title: string, storeName: string) {
+  const squash = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const target = squash(storeName);
+  if (!target) return title.trim();
+
+  const idx = Math.max(title.lastIndexOf(" - "), title.lastIndexOf(" | "), title.lastIndexOf(" – "));
+  if (idx <= 0) return title.trim();
+
+  return squash(title.slice(idx + 3)) === target ? title.slice(0, idx).trim() : title.trim();
+}
+
+/**
+ * Longest plausible product title. A backstop: before the DOM selectors above, this
+ * adapter fell back to the entire rendered page, producing listings whose price came
+ * from the first product on a search page and whose pack size came from a different
+ * product further down. Real titles top out around 110 characters.
+ */
 const MAX_TITLE_LEN = 160;
-/** Search results and category listings, which are not individual products. */
-const LISTING_PAGE_RX = /\/categories\/|[?&]q(?:uery)?=|\/search\b/i;
+/**
+ * Search results and category listings, which are not individual products.
+ *
+ * Decided on the path only: product URLs are `/shop/<slug>/<uuid>` and legitimately
+ * carry a `?query=` param from the search that found them, so testing the query
+ * string rejects real products.
+ */
+function isListingPage(rawUrl: string) {
+  let path: string;
+  try {
+    path = new URL(rawUrl).pathname.replace(/\/+$/, "");
+  } catch {
+    return true;
+  }
+  if (/\/categories(\/|$)/i.test(path)) return true;
+  if (/\/search$/i.test(path)) return true;
+  // Bare "/shop" with no product slug is the search-results page.
+  return /^\/shop$/i.test(path);
+}
 import {
   isBulkRoll,
   looksLike35mm,
@@ -14,7 +73,7 @@ import {
   parseMoneyToCents,
   parsePackSize,
 } from "./shared.js";
-import { extractRenderedText, withPage } from "./dakisBrowser.js";
+import { withPage } from "./dakisBrowser.js";
 
 function buildShopQueryUrl(baseUrl: string, q: string) {
   const u = new URL("/shop", baseUrl);
@@ -24,22 +83,6 @@ function buildShopQueryUrl(baseUrl: string, q: string) {
 
 function normalizeWhitespace(s: string) {
   return s.replace(/\s+/g, " ").trim();
-}
-
-function pickPriceFromText(text: string) {
-  // Prefer "Price: $xx.xx" patterns if present, else first $xx.xx
-  const m = text.match(/Price:\s*\$([0-9][0-9,]*(?:\.[0-9]{2})?)/i);
-  if (m?.[1]) return m[1];
-  const m2 = text.match(/\$([0-9][0-9,]*(?:\.[0-9]{2})?)/);
-  return m2?.[1] ?? null;
-}
-
-function looksInStockFromText(text: string) {
-  const t = text.toLowerCase();
-  if (t.includes("out of stock") || t.includes("sold out")) return false;
-  if (t.includes("in stock")) return true;
-  // Unknown -> treat as in stock false to be safe
-  return false;
 }
 
 export function createDakisShopAdapter(params: {
@@ -82,7 +125,7 @@ export function createDakisShopAdapter(params: {
         for (const url of unique) {
           // Search and category pages are not products; scraping them yields a
           // mash-up of every item shown.
-          if (LISTING_PAGE_RX.test(url)) continue;
+          if (isListingPage(url)) continue;
 
           // quick relevance gate
           const lower = url.toLowerCase();
@@ -93,26 +136,26 @@ export function createDakisShopAdapter(params: {
           await page.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 });
           await page.waitForTimeout(3000);
 
-          const text = normalizeWhitespace(await extractRenderedText(page));
-          const priceStr = pickPriceFromText(text);
-          const priceCadCents = priceStr ? parseMoneyToCents(priceStr) : null;
+          const raw = await page.evaluate(PRODUCT_EXTRACT_JS);
+          let detail: { title: string; price: string | null; inStock: boolean };
+          try {
+            detail = JSON.parse(typeof raw === "string" ? raw : String(raw));
+          } catch {
+            continue;
+          }
+
+          // A product page that never rendered its product keeps the generic title
+          // and has no price element.
+          const mergedTitle = normalizeWhitespace(stripStoreSuffix(detail.title, storeName));
+          if (!mergedTitle || GENERIC_TITLE_RX.test(mergedTitle)) continue;
+          if (mergedTitle.length > MAX_TITLE_LEN) continue;
+
+          const priceCadCents = detail.price ? parseMoneyToCents(detail.price) : null;
           if (priceCadCents == null) continue;
 
-          // Title: first line often contains product name
-          const titleLine = text.split("\n").map(normalizeWhitespace).find((l) => l.length > 6) ?? "Film";
-          const titleRaw = titleLine;
+          if (!looksLike35mm(mergedTitle)) continue;
 
-          if (!looksLike35mm(titleRaw) && !looksLike35mm(text)) continue;
-
-          const inStock = looksInStockFromText(text);
-          const mergedTitle = `${titleRaw}`;
-
-          // A product title is a short line. This adapter extracts the whole rendered
-          // page when it cannot find one, which produced listings whose price came
-          // from the first product on a search page and whose pack size came from a
-          // different product further down — a 3-pack priced at the single-roll price.
-          // Every other store's titles top out around 110 characters.
-          if (mergedTitle.length > MAX_TITLE_LEN) continue;
+          const inStock = detail.inStock;
 
           // Ensure film match (shared matcher: ISO tokens on word boundaries).
           if (!matchesFilmAliases(mergedTitle, film.aliases)) continue;
