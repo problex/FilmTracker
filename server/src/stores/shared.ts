@@ -130,6 +130,11 @@ export function matchesFilmAliases(title: string, aliases: string[]) {
         // every CineStill product.
         if (/^\d+$/.test(tok)) return new RegExp(`\\b${tok}\\b`).test(forNumbers);
         if (tok.length < 3) return true;
+        // Plain word tokens match on a boundary too, so a short one can't hide inside
+        // a longer word — "harman red" was matching every Harman listing marked
+        // "Expired". Tokens carrying punctuation ("hp5+", "fp4+") keep substring
+        // matching, since a trailing symbol has no word boundary after it.
+        if (/^[a-z0-9]+$/.test(tok)) return new RegExp(`\\b${tok}\\b`).test(lower);
         return lower.includes(tok);
       })
   );
