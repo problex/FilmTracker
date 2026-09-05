@@ -29,6 +29,22 @@ type ExpiredDeal = {
   discountPercent: number;
 };
 
+type MultipackDeal = {
+  filmId: string;
+  brand: string;
+  name: string;
+  storeId: string;
+  storeName: string;
+  url: string;
+  packSize: number;
+  exposures: number | null;
+  priceCadCents: number;
+  perRollCadCents: number;
+  singlePriceCadCents: number;
+  singleStoreName: string;
+  savingPercent: number;
+};
+
 /** "12/2026" reads as a date; "short dated" is already a phrase. */
 function expiryText(label: string | null) {
   if (!label) return null;
@@ -89,6 +105,8 @@ export function App() {
   const [selectedFilmLoading, setSelectedFilmLoading] = useState(false);
   const [expiredDeals, setExpiredDeals] = useState<ExpiredDeal[] | null>(null);
   const [dealsDismissed, setDealsDismissed] = useState(false);
+  const [packDeals, setPackDeals] = useState<MultipackDeal[] | null>(null);
+  const [packDismissed, setPackDismissed] = useState(false);
 
   async function loadPrices() {
     setError(null);
@@ -125,6 +143,14 @@ export function App() {
         if (!cancelled) setExpiredDeals(json.deals);
       } catch {
         // A deals failure must never block the price table.
+      }
+      try {
+        const res = await fetch(`${API_BASE}/api/deals/multipacks`);
+        if (!res.ok) return;
+        const json = (await res.json()) as { deals: MultipackDeal[] };
+        if (!cancelled) setPackDeals(json.deals);
+      } catch {
+        // ditto
       }
     })();
     return () => {
@@ -260,6 +286,47 @@ export function App() {
                   {d.storeName}
                   {expiryText(d.expiryLabel) ? ` · ${expiryText(d.expiryLabel)}` : ""} · fresh{" "}
                   {formatCad(d.freshPriceCadCents)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {packDeals && packDeals.length > 0 && !packDismissed && (
+        <div className="card deals dealsPack">
+          <div className="dealsHead">
+            <div className="dealsTitle">
+              Cheaper by the pack
+              <span className="dealsCount dealsCountPack">{packDeals.length}</span>
+            </div>
+            <button
+              type="button"
+              className="dealsDismiss"
+              onClick={() => setPackDismissed(true)}
+              aria-label="Dismiss multipack deals"
+            >
+              ×
+            </button>
+          </div>
+          <div className="dealsHint">
+            Multipacks that cost less per roll than the cheapest single roll of the same film
+            and exposure count.
+          </div>
+          <ul className="dealsList">
+            {packDeals.map((d) => (
+              <li key={`${d.storeId}:${d.url}`} className="dealRow">
+                <a className="dealLink" href={d.url} target="_blank" rel="noreferrer noopener">
+                  {d.brand} {d.name}
+                </a>
+                <span className="dealPrice">{formatCad(d.perRollCadCents)}/roll</span>
+                <span className="dealUnit">
+                  {d.packSize}-pack {formatCad(d.priceCadCents)}
+                  {d.exposures ? ` · ${d.exposures} exp` : ""}
+                </span>
+                <span className="dealOff dealOffPack">{d.savingPercent}% less</span>
+                <span className="muted dealMeta">
+                  {d.storeName} · vs {formatCad(d.singlePriceCadCents)} single at {d.singleStoreName}
                 </span>
               </li>
             ))}

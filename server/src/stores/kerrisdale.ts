@@ -67,10 +67,13 @@ export const kerrisdaleAdapter: StoreAdapter = {
             priceCadCents,
             currency: "CAD",
             inStock: picked.inStock,
-            packSize: parsePackSize(titleRaw) ?? parsePackSize(text),
-            exposures: parseExposures(titleRaw) ?? parseExposures(text),
-            isBulk: isBulkRoll(titleRaw) || isBulkRoll(text),
-            ...parseExpiry(`${titleRaw} ${text}`),
+            // Attributes come from the product title only. Falling back to the whole
+            // rendered page mixes products: a "Single Roll" listing was tagged as a
+            // 5-pack because another product on the same search page was one.
+            packSize: parsePackSize(titleRaw),
+            exposures: parseExposures(titleRaw),
+            isBulk: isBulkRoll(titleRaw),
+            ...parseExpiry(titleRaw),
             lastCheckedAt: new Date(),
           },
         ];

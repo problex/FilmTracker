@@ -4,7 +4,7 @@ import type { ListingCandidate, StoreAdapter } from "./types.js";
 /** Longest plausible product title; anything longer is page text, not a product. */
 const MAX_TITLE_LEN = 160;
 /** Search results and category listings, which are not individual products. */
-const LISTING_PAGE_RX = /\/categories\/|[?&]qu=|[?&]q=|\/search\b/i;
+const LISTING_PAGE_RX = /\/categories\/|[?&]q(?:uery)?=|\/search\b/i;
 import {
   isBulkRoll,
   looksLike35mm,
@@ -125,8 +125,9 @@ export function createDakisShopAdapter(params: {
             inStock,
             packSize: parsePackSize(mergedTitle),
             exposures: parseExposures(mergedTitle),
-            isBulk: isBulkRoll(mergedTitle) || isBulkRoll(text),
-            ...parseExpiry(`${mergedTitle} ${text}`),
+            // Title only, for the same reason as kerrisdale.ts.
+            isBulk: isBulkRoll(mergedTitle),
+            ...parseExpiry(mergedTitle),
             lastCheckedAt: new Date(),
           });
 

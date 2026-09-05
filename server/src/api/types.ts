@@ -38,3 +38,23 @@ export type ExpiredDealDto = {
   freshPriceCadCents: number;
   discountPercent: number;
 };
+
+export type MultipackDealDto = {
+  filmId: string;
+  brand: string;
+  name: string;
+  storeId: string;
+  storeName: string;
+  url: string;
+  titleRaw: string;
+  packSize: number;
+  exposures: number | null;
+  /** Price of the whole pack. */
+  priceCadCents: number;
+  /** Pack price divided by pack size. */
+  perRollCadCents: number;
+  /** Cheapest comparable single roll anywhere, and where it is. */
+  singlePriceCadCents: number;
+  singleStoreName: string;
+  savingPercent: number;
+};

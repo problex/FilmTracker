@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { db as dbPromise } from "../db/db.js";
-import type { ExpiredDealDto } from "./types.js";
+import type { ExpiredDealDto, MultipackDealDto } from "./types.js";
 
 /**
  * Expired-stock deals.
@@ -29,6 +29,128 @@ const querySchema = z.object({
 });
 
 export const dealsRouter = Router();
+
+const multipackQuerySchema = z.object({
+  /** Minimum per-roll saving vs. the cheapest comparable single roll, in percent. */
+  minSaving: z.coerce.number().min(0).max(99).optional().transform((v) => v ?? 10),
+  /**
+   * Savings above this are treated as bad data rather than bargains. Scraped
+   * multipacks have produced a "5-pack" that was really a single roll and a 3-pack
+   * priced from a different product on the same page; both looked like the best
+   * deals on the site because implausible savings sort to the top.
+   */
+  maxSaving: z.coerce.number().min(1).max(100).optional().transform((v) => v ?? 70),
+});
+
+/**
+ * Multipacks that work out cheaper per roll than buying singles.
+ *
+ * Compared like for like: same film, same exposure count, neither bulk nor expired,
+ * both in stock. The single-roll price is the cheapest across all stores, since that
+ * is the real alternative to buying the pack.
+ */
+dealsRouter.get("/multipacks", async (req, res) => {
+  const parsed = multipackQuerySchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid query params" });
+  const { minSaving, maxSaving } = parsed.data;
+
+  const db = await dbPromise;
+  const seenSinceSql =
+    db.dialect === "postgres" ? "NOW() - INTERVAL '2 days'" : "datetime('now','-2 days')";
+
+  const result = await db.query<{
+    film_id: string;
+    brand: string;
+    name: string;
+    store_id: string;
+    store_name: string;
+    url: string;
+    title_raw: string;
+    pack_size: number;
+    exposures: number | null;
+    price_cad_cents: number;
+    per_roll_cad_cents: number;
+    single_price_cad_cents: number;
+    single_store_name: string;
+  }>(
+    `
+    WITH latest AS (
+      SELECT listing_id, price_cad_cents, in_stock
+      FROM (
+        SELECT ps.listing_id, ps.price_cad_cents, ps.in_stock,
+               ROW_NUMBER() OVER (PARTITION BY ps.listing_id ORDER BY ps.captured_at DESC) AS rn
+        FROM price_snapshots ps
+      ) t
+      WHERE rn = 1
+    ),
+    live AS (
+      SELECT l.id, l.film_id, l.store_id, l.url, l.title_raw,
+             COALESCE(l.pack_size, 1) AS pack_size,
+             COALESCE(l.exposures, 0) AS exposures,
+             latest.price_cad_cents AS cents
+      FROM latest
+      JOIN listings l ON l.id = latest.listing_id
+      WHERE l.last_seen_at >= ${seenSinceSql}
+        AND latest.in_stock = TRUE
+        AND l.is_bulk = FALSE
+        AND l.is_expired = FALSE
+    ),
+    -- Cheapest single roll per film and exposure count, with the store that has it.
+    -- ROW_NUMBER rather than DISTINCT ON, so this runs on SQLite as well.
+    singles AS (
+      SELECT film_id, exposures, cents, store_id
+      FROM (
+        SELECT film_id, exposures, cents, store_id,
+               ROW_NUMBER() OVER (PARTITION BY film_id, exposures ORDER BY cents ASC) AS rn
+        FROM live
+        WHERE pack_size = 1
+      ) t
+      WHERE rn = 1
+    )
+    SELECT
+      p.film_id, f.brand, f.name,
+      s.id AS store_id, s.name AS store_name,
+      p.url, p.title_raw, p.pack_size,
+      NULLIF(p.exposures, 0) AS exposures,
+      p.cents AS price_cad_cents,
+      (p.cents / p.pack_size) AS per_roll_cad_cents,
+      sg.cents AS single_price_cad_cents,
+      ss.name AS single_store_name
+    FROM live p
+    JOIN singles sg ON sg.film_id = p.film_id AND sg.exposures = p.exposures
+    JOIN films f ON f.id = p.film_id
+    JOIN stores s ON s.id = p.store_id
+    JOIN stores ss ON ss.id = sg.store_id
+    WHERE p.pack_size > 1
+      AND f.enabled = TRUE
+      AND (p.cents / p.pack_size) * 100 <= sg.cents * (100 - $1)
+      AND (p.cents / p.pack_size) * 100 >= sg.cents * (100 - $2)
+    ORDER BY (sg.cents - (p.cents / p.pack_size)) * 1.0 / sg.cents DESC
+    `,
+    [minSaving, maxSaving]
+  );
+
+  const deals: MultipackDealDto[] = result.rows.map((r) => ({
+    filmId: r.film_id,
+    brand: r.brand,
+    name: r.name,
+    storeId: r.store_id,
+    storeName: r.store_name,
+    url: r.url,
+    titleRaw: r.title_raw,
+    packSize: r.pack_size,
+    exposures: r.exposures,
+    priceCadCents: r.price_cad_cents,
+    perRollCadCents: r.per_roll_cad_cents,
+    singlePriceCadCents: r.single_price_cad_cents,
+    singleStoreName: r.single_store_name,
+    savingPercent: Math.round(
+      ((r.single_price_cad_cents - r.per_roll_cad_cents) / r.single_price_cad_cents) * 100
+    ),
+  }));
+
+  return res.json({ deals, minSaving, maxSaving });
+});
 
 dealsRouter.get("/expired", async (req, res) => {
   const parsed = querySchema.safeParse(req.query);

@@ -571,3 +571,19 @@ th {
   border-radius: 999px;
   padding: 1px 8px;
 }
+
+/* Multipack ("cheaper by the pack") callout — same shape as the expired one,
+   different accent so the two are distinguishable at a glance. */
+.dealsPack {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.08), transparent), var(--card);
+}
+
+.dealsCountPack {
+  background: #34d399;
+}
+
+.dealOffPack {
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
+}
