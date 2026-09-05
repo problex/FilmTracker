@@ -181,10 +181,18 @@ Stocked at **all 3** stores:
 | Ilford XP2 Super 400 | bw | C-41 process B&W |
 | Kodak T-MAX P3200 | bw | |
 
-**Alias caution**: the matcher in `stores/shopify.ts` requires every alias token
-≥3 chars to appear in the title, so generic aliases over-match. `"fujifilm 200"` is
-much looser than the existing Kodak aliases — Fuji entries need tighter aliases and
-should be verified against a real catalog before merging.
+**Alias caution**: `matchesFilmAliases()` (in `stores/shared.ts`) requires every alias
+token ≥3 chars to appear *as a substring* of the title, so generic aliases over-match.
+Two known hazards, both activated by this phase:
+
+- `"fujifilm 200"` is far looser than the existing Kodak aliases — Fuji entries need
+  tighter aliases, verified against a real catalogue before merging.
+- **ISO numbers match inside other numbers.** Alias `"delta 100"` matches
+  *"Ilford Delta 400 | 35mm | 100ft roll"*, because `100` occurs in `100ft`. Adding
+  Delta 100 alongside the existing Delta 400 therefore risks mis-assigning bulk rolls.
+  In bulk mode the first film in `filmSeeds` order wins, which makes the outcome
+  order-dependent rather than wrong-by-default — but it should be fixed properly by
+  matching ISO on a word boundary rather than by substring.
 
 ### Expired stock — flag, don't filter
 
