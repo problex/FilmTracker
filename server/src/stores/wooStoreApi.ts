@@ -1,0 +1,165 @@
+import type { FilmSeed } from "../catalog/films.js";
+import type { CandidatesByFilmId, ListingCandidate, StoreAdapter } from "./types.js";
+import {
+  fetchText,
+  isBulkRoll,
+  looksLike35mm,
+  matchesFilmAliases,
+  parseExposures,
+  parsePackSize,
+} from "./shared.js";
+
+/**
+ * WooCommerce Store API (`/wp-json/wc/store/v1/products`).
+ *
+ * Preferred over scraping WooCommerce HTML: prices arrive as integer minor units,
+ * stock is an explicit boolean, and the whole catalogue is a couple of requests
+ * rather than a search plus a product page per film.
+ */
+type WooProduct = {
+  id: number;
+  name: string;
+  permalink: string;
+  is_in_stock: boolean;
+  prices: {
+    /** Minor units, as a string — scaled by `currency_minor_unit`. */
+    price: string;
+    currency_code: string;
+    currency_minor_unit: number;
+  };
+};
+
+const PAGE_SIZE = 100;
+const MAX_PAGES = 12;
+
+/**
+ * WooCommerce HTML-encodes `name` — both named entities (`&amp;`) and numeric ones
+ * (`&#8211;` en dash, `&#215;` multiplication sign, as seen in real listings).
+ */
+function decodeEntities(s: string) {
+  return s
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => String.fromCodePoint(Number.parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec: string) => String.fromCodePoint(Number.parseInt(dec, 10)))
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ");
+}
+
+/**
+ * `prices.price` is in minor units scaled by `currency_minor_unit`, so "1699" with
+ * minor unit 2 is $16.99. Normalise to cents rather than assuming 2 decimals.
+ */
+function toCadCents(prices: WooProduct["prices"]) {
+  if (!prices || typeof prices.price !== "string") return null;
+  const raw = Number.parseInt(prices.price, 10);
+  if (!Number.isFinite(raw)) return null;
+  if (prices.currency_code && prices.currency_code !== "CAD") return null;
+
+  const minorUnit = Number.isFinite(prices.currency_minor_unit) ? prices.currency_minor_unit : 2;
+  return Math.round(raw * 10 ** (2 - minorUnit));
+}
+
+async function fetchCatalog(baseUrl: string): Promise<WooProduct[]> {
+  const out: WooProduct[] = [];
+
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    const u = new URL("/wp-json/wc/store/v1/products", baseUrl);
+    u.searchParams.set("per_page", String(PAGE_SIZE));
+    u.searchParams.set("page", String(page));
+
+    const raw = await fetchText(u.toString());
+    let batch: WooProduct[];
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!Array.isArray(parsed)) break;
+      batch = parsed as WooProduct[];
+    } catch {
+      break;
+    }
+
+    if (batch.length === 0) break;
+    out.push(...batch);
+    if (batch.length < PAGE_SIZE) break;
+  }
+
+  return out;
+}
+
+function toCandidate(p: WooProduct): ListingCandidate | null {
+  const titleRaw = decodeEntities(p.name ?? "");
+  if (!titleRaw || !looksLike35mm(titleRaw)) return null;
+
+  const priceCadCents = toCadCents(p.prices);
+  if (priceCadCents == null) return null;
+  if (!p.permalink) return null;
+
+  return {
+    url: p.permalink,
+    titleRaw,
+    priceCadCents,
+    currency: "CAD",
+    inStock: Boolean(p.is_in_stock),
+    packSize: parsePackSize(titleRaw),
+    exposures: parseExposures(titleRaw),
+    isBulk: isBulkRoll(titleRaw),
+    lastCheckedAt: new Date(),
+  };
+}
+
+export function createWooStoreApiAdapter(params: {
+  storeId: string;
+  storeName: string;
+  baseUrl: string;
+}): StoreAdapter {
+  const { storeId, storeName, baseUrl } = params;
+
+  return {
+    storeId,
+    storeName,
+    baseUrl,
+
+    async fetchCandidatesForFilm(film: FilmSeed): Promise<ListingCandidate[]> {
+      const u = new URL("/wp-json/wc/store/v1/products", baseUrl);
+      u.searchParams.set("per_page", String(PAGE_SIZE));
+      u.searchParams.set("search", `${film.aliases[0] ?? `${film.brand} ${film.name}`} 35mm`);
+
+      const raw = await fetchText(u.toString());
+      let products: WooProduct[];
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (!Array.isArray(parsed)) return [];
+        products = parsed as WooProduct[];
+      } catch {
+        return [];
+      }
+
+      const out: ListingCandidate[] = [];
+      for (const p of products) {
+        const candidate = toCandidate(p);
+        if (!candidate) continue;
+        if (!matchesFilmAliases(candidate.titleRaw, film.aliases)) continue;
+        out.push(candidate);
+      }
+      return out;
+    },
+
+    async fetchCandidatesForAllFilms(films: FilmSeed[]): Promise<CandidatesByFilmId> {
+      const products = await fetchCatalog(baseUrl);
+      const byFilmId: CandidatesByFilmId = new Map(films.map((f) => [f.id, []]));
+
+      for (const p of products) {
+        const candidate = toCandidate(p);
+        if (!candidate) continue;
+
+        const film = films.find((f) => matchesFilmAliases(candidate.titleRaw, f.aliases));
+        if (!film) continue;
+
+        byFilmId.get(film.id)?.push(candidate);
+      }
+
+      return byFilmId;
+    },
+  };
+}

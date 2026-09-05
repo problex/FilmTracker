@@ -87,6 +87,22 @@ export function parseMoneyToCents(value: string) {
   return Math.round(num * 100);
 }
 
+/**
+ * True when `title` matches any of the film's aliases. An alias matches when every
+ * one of its tokens appears in the title; tokens shorter than 3 chars are ignored
+ * so they don't match incidental substrings.
+ */
+export function matchesFilmAliases(title: string, aliases: string[]) {
+  const lower = title.toLowerCase();
+  return aliases.some((alias) =>
+    alias
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(Boolean)
+      .every((tok) => tok.length < 3 || lower.includes(tok))
+  );
+}
+
 export function looksLike35mm(title: string) {
   const t = title.toLowerCase();
   const has35 = /\b35\s*mm\b/.test(t) || /\b135\b/.test(t) || /\b135-36\b/.test(t);

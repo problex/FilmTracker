@@ -143,6 +143,60 @@ async function upsertListingAndSnapshot(params: {
   );
 }
 
+type StoreResult = {
+  storeId: string;
+  inserted: number;
+  /** True when the store hit its time budget and did not cover the whole catalogue. */
+  truncated: boolean;
+  mode: "bulk" | "per-film";
+  durationMs: number;
+  errors: { filmId: string; message: string }[];
+};
+
+async function startScrapeRun(): Promise<number | null> {
+  const db = await dbPromise;
+  const result = await db.query<{ id: number | string }>(
+    `INSERT INTO scrape_runs (status) VALUES ('running') RETURNING id`
+  );
+  const id = result.rows[0]?.id;
+  return id == null ? null : Number(id);
+}
+
+async function finishScrapeRun(runId: number | null, stores: StoreResult[]) {
+  if (runId == null) return;
+  const db = await dbPromise;
+
+  const truncated = stores.filter((s) => s.truncated);
+  const failed = stores.filter((s) => s.inserted === 0);
+  const status = truncated.length > 0 || failed.length > 0 ? "partial" : "success";
+
+  const summary: string[] = [];
+  for (const s of failed) summary.push(`${s.storeId}: 0 listings`);
+  for (const s of truncated) summary.push(`${s.storeId}: budget exceeded, catalogue not fully covered`);
+
+  const totals = JSON.stringify({
+    stores: stores.map((s) => ({
+      storeId: s.storeId,
+      inserted: s.inserted,
+      truncated: s.truncated,
+      mode: s.mode,
+      durationMs: s.durationMs,
+      errorCount: s.errors.length,
+    })),
+    insertedTotal: stores.reduce((n, s) => n + s.inserted, 0),
+  });
+
+  const finishedAt = db.dialect === "postgres" ? "NOW()" : "datetime('now')";
+  const totalsExpr = db.dialect === "postgres" ? "$2::jsonb" : "$2";
+
+  await db.query(
+    `UPDATE scrape_runs
+     SET finished_at = ${finishedAt}, status = $1, totals = ${totalsExpr}, error_summary = $3
+     WHERE id = $4`,
+    [status, totals, summary.length > 0 ? summary.join("; ") : null, runId]
+  );
+}
+
 async function markStoreListingsStale(storeId: string) {
   const db = await dbPromise;
   if (db.dialect === "postgres") {
@@ -168,57 +222,100 @@ export async function runScrape() {
     donsPhotoAdapter,
     kerrisdaleAdapter,
   ] as const;
-  const perStore: {
-    storeId: string;
-    inserted: number;
-    errors: { filmId: string; message: string }[];
-  }[] = [];
+  const perStore: StoreResult[] = [];
+  const runId = await startScrapeRun();
 
   for (const adapter of adapters) {
     await markStoreListingsStale(adapter.storeId);
 
     let inserted = 0;
+    let truncated = false;
     const errors: { filmId: string; message: string }[] = [];
     const storeStart = Date.now();
     const isBrowserStore = ["dons-photo", "kerrisdale", "lord-photo", "downtown-camera"].includes(adapter.storeId);
     const STORE_BUDGET_MS = isBrowserStore ? 180_000 : 90_000;
     const FILM_TIMEOUT_MS = isBrowserStore ? 45_000 : 25_000;
+    // One catalogue fetch covers every film, so this scales with catalogue size,
+    // not with how many films we track.
+    const CATALOG_TIMEOUT_MS = 60_000;
+    const useBulk = typeof adapter.fetchCandidatesForAllFilms === "function";
 
-    for (const film of filmSeeds) {
-      if (Date.now() - storeStart > STORE_BUDGET_MS) {
-        errors.push({ filmId: film.id, message: "Store scrape budget exceeded; partial results" });
-        break;
-      }
+    if (useBulk) {
       try {
-        const candidates = await Promise.race([
-          adapter.fetchCandidatesForFilm(film),
+        const byFilmId = await Promise.race([
+          adapter.fetchCandidatesForAllFilms!(filmSeeds),
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Film scrape timeout")), FILM_TIMEOUT_MS)
+            setTimeout(() => reject(new Error("Catalogue fetch timeout")), CATALOG_TIMEOUT_MS)
           ),
         ]);
-        for (const c of candidates) {
-          await upsertListingAndSnapshot({
-            storeId: adapter.storeId,
-            filmId: film.id,
-            url: c.url,
-            titleRaw: c.titleRaw,
-            packSize: c.packSize,
-            exposures: c.exposures,
-            isBulk: c.isBulk,
-            priceCadCents: c.priceCadCents,
-            inStock: c.inStock,
-          });
-          inserted += 1;
+
+        for (const film of filmSeeds) {
+          for (const c of byFilmId.get(film.id) ?? []) {
+            await upsertListingAndSnapshot({
+              storeId: adapter.storeId,
+              filmId: film.id,
+              url: c.url,
+              titleRaw: c.titleRaw,
+              packSize: c.packSize,
+              exposures: c.exposures,
+              isBulk: c.isBulk,
+              priceCadCents: c.priceCadCents,
+              inStock: c.inStock,
+            });
+            inserted += 1;
+          }
         }
       } catch (e) {
         errors.push({
-          filmId: film.id,
-          message: e instanceof Error ? e.message : "Scrape failed",
+          filmId: "*",
+          message: e instanceof Error ? e.message : "Catalogue scrape failed",
         });
+      }
+    } else {
+      for (const film of filmSeeds) {
+        if (Date.now() - storeStart > STORE_BUDGET_MS) {
+          truncated = true;
+          errors.push({ filmId: film.id, message: "Store scrape budget exceeded; partial results" });
+          break;
+        }
+        try {
+          const candidates = await Promise.race([
+            adapter.fetchCandidatesForFilm(film),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Film scrape timeout")), FILM_TIMEOUT_MS)
+            ),
+          ]);
+          for (const c of candidates) {
+            await upsertListingAndSnapshot({
+              storeId: adapter.storeId,
+              filmId: film.id,
+              url: c.url,
+              titleRaw: c.titleRaw,
+              packSize: c.packSize,
+              exposures: c.exposures,
+              isBulk: c.isBulk,
+              priceCadCents: c.priceCadCents,
+              inStock: c.inStock,
+            });
+            inserted += 1;
+          }
+        } catch (e) {
+          errors.push({
+            filmId: film.id,
+            message: e instanceof Error ? e.message : "Scrape failed",
+          });
+        }
       }
     }
 
-    perStore.push({ storeId: adapter.storeId, inserted, errors });
+    perStore.push({
+      storeId: adapter.storeId,
+      inserted,
+      truncated,
+      mode: useBulk ? "bulk" : "per-film",
+      durationMs: Date.now() - storeStart,
+      errors,
+    });
   }
 
   // Pinned URL scrapes (exact product pages)
@@ -227,9 +324,11 @@ export async function runScrape() {
     const STORE_BUDGET_MS = 120_000;
     const errors: { filmId: string; message: string }[] = [];
     let inserted = 0;
+    let truncated = false;
 
     for (const p of pinnedListings) {
       if (Date.now() - storeStart > STORE_BUDGET_MS) {
+        truncated = true;
         errors.push({ filmId: p.filmId, message: "Pinned scrape budget exceeded; partial results" });
         break;
       }
@@ -288,8 +387,17 @@ export async function runScrape() {
       }
     }
 
-    perStore.push({ storeId: "pinned", inserted, errors });
+    perStore.push({
+      storeId: "pinned",
+      inserted,
+      truncated,
+      mode: "per-film",
+      durationMs: Date.now() - storeStart,
+      errors,
+    });
   }
+
+  await finishScrapeRun(runId, perStore);
 
   return { stores: perStore };
 }
