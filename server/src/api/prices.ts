@@ -95,6 +95,9 @@ pricesRouter.get("/", async (req, res) => {
       JOIN listings l ON l.id = latest.listing_id
       JOIN stores s ON s.id = l.store_id
       WHERE l.last_seen_at >= ${seenSinceSql}
+        -- Expired stock is genuinely cheap; it would win the lowest-price
+        -- display and read as fresh. Surfaced separately via /api/deals/expired.
+        AND l.is_expired = FALSE
         AND (($2 = FALSE) OR (latest.in_stock = TRUE))
         AND (
           $3 = 'any' OR

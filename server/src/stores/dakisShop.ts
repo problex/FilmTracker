@@ -1,6 +1,13 @@
 import type { FilmSeed } from "../catalog/films.js";
 import type { ListingCandidate, StoreAdapter } from "./types.js";
-import { isBulkRoll, looksLike35mm, parseExposures, parseMoneyToCents, parsePackSize } from "./shared.js";
+import {
+  isBulkRoll,
+  looksLike35mm,
+  parseExpiry,
+  parseExposures,
+  parseMoneyToCents,
+  parsePackSize,
+} from "./shared.js";
 import { extractRenderedText, withPage } from "./dakisBrowser.js";
 
 function buildShopQueryUrl(baseUrl: string, q: string) {
@@ -110,6 +117,7 @@ export function createDakisShopAdapter(params: {
             packSize: parsePackSize(mergedTitle),
             exposures: parseExposures(mergedTitle),
             isBulk: isBulkRoll(mergedTitle) || isBulkRoll(text),
+            ...parseExpiry(`${mergedTitle} ${text}`),
             lastCheckedAt: new Date(),
           });
 

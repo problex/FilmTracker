@@ -10,7 +10,7 @@ import { donsPhotoAdapter } from "../stores/donsPhoto.js";
 import { kerrisdaleAdapter } from "../stores/kerrisdale.js";
 import { pinnedListings } from "../stores/pinnedListings.js";
 import { withPage, extractRenderedText } from "../stores/dakisBrowser.js";
-import { isBulkRoll, parseExposures, parseMoneyToCents, parsePackSize } from "../stores/shared.js";
+import { isBulkRoll, parseExpiry, parseExposures, parseMoneyToCents, parsePackSize } from "../stores/shared.js";
 import { randomUUID } from "node:crypto";
 
 type UpsertedListing = { id: string };
@@ -54,6 +54,8 @@ async function upsertListingAndSnapshot(params: {
   packSize: number | null;
   exposures: 24 | 36 | null;
   isBulk: boolean;
+  isExpired: boolean;
+  expiryLabel: string | null;
   priceCadCents: number;
   inStock: boolean;
 }) {
@@ -63,14 +65,16 @@ async function upsertListingAndSnapshot(params: {
     const listingId = randomUUID();
     const result = await db.query<UpsertedListing>(
       `
-      INSERT INTO listings (id, store_id, film_id, url, title_raw, pack_size, exposures, is_bulk, last_seen_at, last_in_stock_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), CASE WHEN $9 THEN NOW() ELSE NULL END)
+      INSERT INTO listings (id, store_id, film_id, url, title_raw, pack_size, exposures, is_bulk, is_expired, expiry_label, last_seen_at, last_in_stock_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $10, $11, NOW(), CASE WHEN $9 THEN NOW() ELSE NULL END)
       ON CONFLICT (store_id, url) DO UPDATE SET
         film_id = EXCLUDED.film_id,
         title_raw = EXCLUDED.title_raw,
         pack_size = EXCLUDED.pack_size,
         exposures = EXCLUDED.exposures,
         is_bulk = EXCLUDED.is_bulk,
+        is_expired = EXCLUDED.is_expired,
+        expiry_label = EXCLUDED.expiry_label,
         last_seen_at = NOW(),
         last_in_stock_at = CASE WHEN EXCLUDED.last_in_stock_at IS NULL THEN listings.last_in_stock_at ELSE EXCLUDED.last_in_stock_at END
       RETURNING id
@@ -85,6 +89,8 @@ async function upsertListingAndSnapshot(params: {
         params.exposures,
         params.isBulk,
         params.inStock,
+        params.isExpired,
+        params.expiryLabel,
       ]
     );
 
@@ -106,8 +112,8 @@ async function upsertListingAndSnapshot(params: {
   const id = existing.rows[0]?.id ?? randomUUID();
   if (existing.rows.length === 0) {
     await db.query(
-      `INSERT INTO listings (id, store_id, film_id, url, title_raw, pack_size, exposures, is_bulk, last_seen_at, last_in_stock_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, CURRENT_TIMESTAMP, CASE WHEN $9 THEN CURRENT_TIMESTAMP ELSE NULL END)`,
+      `INSERT INTO listings (id, store_id, film_id, url, title_raw, pack_size, exposures, is_bulk, is_expired, expiry_label, last_seen_at, last_in_stock_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $10, $11, CURRENT_TIMESTAMP, CASE WHEN $9 THEN CURRENT_TIMESTAMP ELSE NULL END)`,
       [
         id,
         params.storeId,
@@ -118,12 +124,15 @@ async function upsertListingAndSnapshot(params: {
         params.exposures,
         params.isBulk ? 1 : 0,
         params.inStock,
+        params.isExpired ? 1 : 0,
+        params.expiryLabel,
       ]
     );
   } else {
     await db.query(
       `UPDATE listings
-       SET film_id=$1, title_raw=$2, pack_size=$3, exposures=$4, is_bulk=$5, last_seen_at=CURRENT_TIMESTAMP,
+       SET film_id=$1, title_raw=$2, pack_size=$3, exposures=$4, is_bulk=$5, is_expired=$8, expiry_label=$9,
+           last_seen_at=CURRENT_TIMESTAMP,
            last_in_stock_at=CASE WHEN $6 THEN CURRENT_TIMESTAMP ELSE last_in_stock_at END
        WHERE id=$7`,
       [
@@ -134,6 +143,8 @@ async function upsertListingAndSnapshot(params: {
         params.isBulk ? 1 : 0,
         params.inStock,
         id,
+        params.isExpired ? 1 : 0,
+        params.expiryLabel,
       ]
     );
   }
@@ -261,6 +272,8 @@ export async function runScrape() {
               packSize: c.packSize,
               exposures: c.exposures,
               isBulk: c.isBulk,
+              isExpired: c.isExpired,
+              expiryLabel: c.expiryLabel,
               priceCadCents: c.priceCadCents,
               inStock: c.inStock,
             });
@@ -296,6 +309,8 @@ export async function runScrape() {
               packSize: c.packSize,
               exposures: c.exposures,
               isBulk: c.isBulk,
+              isExpired: c.isExpired,
+              expiryLabel: c.expiryLabel,
               priceCadCents: c.priceCadCents,
               inStock: c.inStock,
             });
@@ -365,7 +380,15 @@ export async function runScrape() {
           const packSize = parsePackSize(titleRaw) ?? parsePackSize(text);
           const bulk = isBulkRoll(titleRaw) || isBulkRoll(text);
 
-          return { titleRaw, priceCadCents, inStock, exposures, packSize, bulk };
+          return {
+            titleRaw,
+            priceCadCents,
+            inStock,
+            exposures,
+            packSize,
+            bulk,
+            ...parseExpiry(`${titleRaw} ${text}`),
+          };
         });
 
         if (listing.priceCadCents == null) {
@@ -380,6 +403,8 @@ export async function runScrape() {
           packSize: listing.packSize,
           exposures: listing.exposures,
           isBulk: listing.bulk,
+          isExpired: listing.isExpired,
+          expiryLabel: listing.expiryLabel,
           priceCadCents: listing.priceCadCents,
           inStock: listing.inStock,
         });

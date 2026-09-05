@@ -5,6 +5,7 @@ import {
   isBulkRoll,
   looksLike35mm,
   matchesFilmAliases,
+  parseExpiry,
   parseExposures,
   parseMoneyToCents,
   parsePackSize,
@@ -169,6 +170,7 @@ export function createShopifyAdapter(params: {
           packSize: parsePackSize(`${p.title} ${variant.title}`),
           exposures: parseExposures(`${p.title} ${variant.title}`),
           isBulk: isBulkRoll(`${p.title} ${variant.title}`),
+          ...parseExpiry(titleRaw),
           lastCheckedAt: new Date(),
         });
       }
@@ -205,6 +207,7 @@ export function createShopifyAdapter(params: {
           packSize: parsePackSize(`${p.title} ${variant.title}`),
           exposures: parseExposures(`${p.title} ${variant.title}`),
           isBulk: isBulkRoll(`${p.title} ${variant.title}`),
+          ...parseExpiry(titleRaw),
           lastCheckedAt: new Date(),
         });
       }

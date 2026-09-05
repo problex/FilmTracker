@@ -201,6 +201,9 @@ filmsRouter.get("/:id/offers", async (req, res) => {
           JOIN listings l ON l.id = latest.listing_id
           JOIN stores s ON s.id = l.store_id
           WHERE l.last_seen_at >= ${seenSinceSql}
+        -- Expired stock is genuinely cheap; it would win the lowest-price
+        -- display and read as fresh. Surfaced separately via /api/deals/expired.
+        AND l.is_expired = FALSE
             AND ((NOT $2::boolean) OR (latest.in_stock = TRUE))
             AND ${variantClause}
           ORDER BY latest.price_cad_cents ASC
@@ -238,6 +241,9 @@ filmsRouter.get("/:id/offers", async (req, res) => {
           JOIN listings l ON l.id = latest.listing_id
           JOIN stores s ON s.id = l.store_id
           WHERE l.last_seen_at >= ${seenSinceSql}
+        -- Expired stock is genuinely cheap; it would win the lowest-price
+        -- display and read as fresh. Surfaced separately via /api/deals/expired.
+        AND l.is_expired = FALSE
             AND ((? = 0) OR (latest.in_stock = 1))
             AND ${variantClause}
           ORDER BY latest.price_cad_cents ASC

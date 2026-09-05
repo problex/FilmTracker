@@ -6,6 +6,7 @@ import {
   fetchText,
   isBulkRoll,
   looksLike35mm,
+  parseExpiry,
   parseExposures,
   parseMoneyToCents,
   parsePackSize,
@@ -57,6 +58,7 @@ function parseFromJsonLd(html: string) {
       packSize: parsePackSize(titleRaw),
       exposures: parseExposures(titleRaw),
       isBulk: isBulkRoll(titleRaw),
+      ...parseExpiry(titleRaw),
     };
   }
 
@@ -86,6 +88,7 @@ function parseFromText(html: string) {
     packSize: parsePackSize(titleRaw),
     exposures: parseExposures(titleRaw),
     isBulk: isBulkRoll(titleRaw),
+    ...parseExpiry(titleRaw),
   };
 }
 
@@ -137,6 +140,8 @@ export const theCameraStoreAdapter: StoreAdapter = {
         packSize: parsed.packSize,
         exposures: parsed.exposures,
         isBulk: parsed.isBulk,
+        isExpired: parsed.isExpired,
+        expiryLabel: parsed.expiryLabel,
         lastCheckedAt: new Date(),
       });
     }

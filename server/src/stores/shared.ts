@@ -88,18 +88,50 @@ export function parseMoneyToCents(value: string) {
 }
 
 /**
+ * Numbers in a title that describe packaging rather than film speed: roll lengths,
+ * exposure counts, pack sizes, format codes. Removing them before matching stops an
+ * ISO token from matching one of them — "Delta 400 … 100ft roll" must not satisfy
+ * the alias "delta 100", and "Kentmere 400 … 100' Bulk" must not satisfy
+ * "kentmere 100".
+ */
+function stripPackagingNumbers(s: string) {
+  return s
+    .replace(/\b\d+\s*(?:ft|feet|foot)\b/g, " ") // 100ft / 100 feet
+    .replace(/\b\d+\s*['’′]/g, " ") //             100' / 100’ / 100′
+    .replace(/\b\d+\s*m(?:et(?:er|re)s?)?\b/g, " ") // 30m
+    .replace(/\b\d+\s*exp(?:osures?)?\b/g, " ") //  36exp / 24 exposures
+    .replace(/\b135\s*[-–]\s*\d+/g, " ") //         135-36
+    .replace(/\b\d+\s*(?:rolls?|packs?|pk|pak)\b/g, " ") // 3 rolls / 5 pack
+    .replace(/\b\d+\s*sheets?\b/g, " ");
+}
+
+/**
  * True when `title` matches any of the film's aliases. An alias matches when every
- * one of its tokens appears in the title; tokens shorter than 3 chars are ignored
- * so they don't match incidental substrings.
+ * one of its tokens is present; tokens shorter than 3 chars are ignored so they
+ * don't match incidental substrings.
+ *
+ * Word tokens match as substrings ("colorplus" matches "ColorPlus 200"), but purely
+ * numeric tokens — ISO speeds — must match on a word boundary against a title with
+ * packaging numbers stripped. Substring matching on ISO silently mis-assigns whole
+ * films: it priced Kentmere PAN 100/200 as PAN 400 at four stores.
  */
 export function matchesFilmAliases(title: string, aliases: string[]) {
   const lower = title.toLowerCase();
+  const forNumbers = stripPackagingNumbers(lower);
+
   return aliases.some((alias) =>
     alias
       .toLowerCase()
       .split(/\s+/)
       .filter(Boolean)
-      .every((tok) => tok.length < 3 || lower.includes(tok))
+      .every((tok) => {
+        // Numeric tokens are checked before the short-token rule: an ISO of "50" is
+        // only two characters, and skipping it turns "cinestill 50" into a match on
+        // every CineStill product.
+        if (/^\d+$/.test(tok)) return new RegExp(`\\b${tok}\\b`).test(forNumbers);
+        if (tok.length < 3) return true;
+        return lower.includes(tok);
+      })
   );
 }
 
@@ -137,6 +169,32 @@ export function parseExposures(title: string): 24 | 36 | null {
   if (/\b35\s*mm\b/.test(t) && /\b36\b/.test(t) && !/\b120\b/.test(t)) return 36;
 
   return null;
+}
+
+/**
+ * Detect expired stock and the date the store gives for it.
+ *
+ * Four shapes occur in the wild:
+ *   "[Expired 01/2025] CineStill 50D …"      -> 01/2025
+ *   "[Expired 08/23] Kodak T-Max 3200 …"     -> 08/23
+ *   "Harman Phoenix 200 … - Expired May 2026" -> May 2026
+ *   "Fomapan 100 Classic … (expired)"         -> null
+ *
+ * Expired film is genuinely cheap, so it must not be silently mixed into the
+ * lowest-price display: flag it, then exclude it from headline prices.
+ */
+export function parseExpiry(title: string): { isExpired: boolean; expiryLabel: string | null } {
+  if (!/\bexpired?\b/i.test(title)) return { isExpired: false, expiryLabel: null };
+
+  const label =
+    title.match(/\bexpir(?:ed|es|y)?\s*:?\s*(\d{1,2}\s*\/\s*\d{2,4})/i)?.[1] ??
+    title.match(
+      /\bexpir(?:ed|es|y)?\s*:?\s*((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{2,4})/i
+    )?.[1] ??
+    title.match(/\bexpir(?:ed|es|y)?\s*:?\s*(\d{4})\b/i)?.[1] ??
+    null;
+
+  return { isExpired: true, expiryLabel: label ? label.replace(/\s+/g, " ").trim() : null };
 }
 
 export function isBulkRoll(title: string) {

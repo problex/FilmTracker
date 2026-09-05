@@ -1,6 +1,12 @@
 import type { FilmSeed } from "../catalog/films.js";
 import type { CandidatesByFilmId, ListingCandidate, StoreAdapter } from "./types.js";
-import { isBulkRoll, matchesFilmAliases, parseExposures, parsePackSize } from "./shared.js";
+import {
+  isBulkRoll,
+  matchesFilmAliases,
+  parseExpiry,
+  parseExposures,
+  parsePackSize,
+} from "./shared.js";
 import {
   decodeEntities,
   fetchWooCatalog,
@@ -32,7 +38,7 @@ const MAX_PAGES = 30;
 
 /** Accessories that live in the film categories and carry film-ish tags. */
 const ACCESSORY_RX =
-  /\b(adapter|adaptor|holder|reel|tank|squeegee|changing bag|clips?|cassette|loader|developer|fixer|toner|stop bath|chemistry|scanner|album|sleeve|binder|page|frame)\b/i;
+  /\b(adapter|adaptor|holder|reel|tank|squeegee|changing bag|clips?|cassette|loader|developer|fixer|toner|stop bath|chemistry|scanner|album|sleeve|binder|page|frame|camera|disposable|single[- ]use)\b/i;
 
 /** Formats other than 35mm, used to veto mis-tagged simple products. */
 const NON_35MM_RX = /\b(120|110|220|4\s?x\s?5|8\s?x\s?10|instax|sheet film|large format)\b/i;
@@ -100,6 +106,7 @@ export const beauPhotoAdapter: StoreAdapter = {
           packSize: parsePackSize(name),
           exposures: parseExposures(name),
           isBulk: isBulkRoll(name),
+          ...parseExpiry(name),
           lastCheckedAt: new Date(),
         });
         continue;
@@ -131,6 +138,7 @@ export const beauPhotoAdapter: StoreAdapter = {
           // The slug is authoritative; the label writes it as "100′ roll" with a
           // prime character that the title-based test doesn't catch.
           isBulk: slug.includes("100-roll") || isBulkRoll(titleRaw),
+          ...parseExpiry(titleRaw),
           lastCheckedAt: new Date(),
         });
       }

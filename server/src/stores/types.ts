@@ -9,6 +9,10 @@ export type ListingCandidate = {
   packSize: number | null;
   exposures: 24 | 36 | null;
   isBulk: boolean;
+  /** Stock the store itself marks as expired; excluded from headline prices. */
+  isExpired: boolean;
+  /** Expiry as written by the store ("01/2025", "May 2026"), when given. */
+  expiryLabel: string | null;
   lastCheckedAt: Date;
 };
 

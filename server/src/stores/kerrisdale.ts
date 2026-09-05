@@ -1,7 +1,14 @@
 import type { FilmSeed } from "../catalog/films.js";
 import type { ListingCandidate, StoreAdapter } from "./types.js";
 import { closeBrowser, extractRenderedText, withPage } from "./dakisBrowser.js";
-import { isBulkRoll, looksLike35mm, parseExposures, parseMoneyToCents, parsePackSize } from "./shared.js";
+import {
+  isBulkRoll,
+  looksLike35mm,
+  parseExpiry,
+  parseExposures,
+  parseMoneyToCents,
+  parsePackSize,
+} from "./shared.js";
 
 function pickFirstProductFromText(text: string) {
   const lines = text
@@ -63,6 +70,7 @@ export const kerrisdaleAdapter: StoreAdapter = {
             packSize: parsePackSize(titleRaw) ?? parsePackSize(text),
             exposures: parseExposures(titleRaw) ?? parseExposures(text),
             isBulk: isBulkRoll(titleRaw) || isBulkRoll(text),
+            ...parseExpiry(`${titleRaw} ${text}`),
             lastCheckedAt: new Date(),
           },
         ];

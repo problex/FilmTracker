@@ -5,6 +5,7 @@ import {
   isBulkRoll,
   looksLike35mm,
   matchesFilmAliases,
+  parseExpiry,
   parseExposures,
   parsePackSize,
 } from "./shared.js";
@@ -122,6 +123,7 @@ function toCandidate(p: WooProduct): ListingCandidate | null {
     packSize: parsePackSize(titleRaw),
     exposures: parseExposures(titleRaw),
     isBulk: isBulkRoll(titleRaw),
+    ...parseExpiry(titleRaw),
     lastCheckedAt: new Date(),
   };
 }

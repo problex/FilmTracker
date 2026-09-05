@@ -175,6 +175,130 @@ export const filmSeeds: FilmSeed[] = [
     // No bare "kentmere pan" alias: it matched Kentmere Pan 100 as well, so PAN 100
     // listings were being priced as PAN 400 at four stores. Every alias must pin the ISO.
     aliases: ["kentmere pan 400", "kentmere 400", "kentmere pan400", "pan 400 kentmere"],
-  }
+  },
+
+  // --- Phase 1 additions (stocked at all three surveyed Shopify stores) ---
+
+  {
+    id: "fujifilm-200",
+    brand: "Fujifilm",
+    name: "Fujicolor 200",
+    iso: 200,
+    type: "color",
+    process: "c41",
+    // "fujifilm 200" alone is too loose — it would match any Fujifilm product whose
+    // title happens to contain 200. Every alias pins a Fuji colour-film word.
+    aliases: ["fujicolor 200", "fujifilm color 200", "fujifilm colour 200", "fujifilm 200 color", "fuji c200"],
+  },
+  {
+    id: "fujifilm-400",
+    brand: "Fujifilm",
+    name: "Fujicolor 400",
+    iso: 400,
+    type: "color",
+    process: "c41",
+    aliases: ["fujicolor 400", "fujifilm color 400", "fujifilm colour 400", "fujifilm 400 color"],
+  },
+  {
+    id: "harman-phoenix-200",
+    brand: "Harman",
+    name: "Phoenix 200",
+    iso: 200,
+    type: "color",
+    process: "c41",
+    aliases: ["harman phoenix 200", "phoenix 200", "harman phoenix ii", "phoenix ii"],
+  },
+  {
+    id: "kodak-ektachrome-e100",
+    brand: "Kodak",
+    name: "Ektachrome E100",
+    iso: 100,
+    type: "color",
+    process: "e6",
+    // No bare "kodak ektachrome": it also matched Super 8 Ektachrome 100D.
+    aliases: ["ektachrome e100", "ektachrome 100", "ektachrome e6"],
+  },
+  {
+    id: "fujifilm-velvia-100",
+    brand: "Fujifilm",
+    name: "Velvia 100",
+    iso: 100,
+    type: "color",
+    process: "e6",
+    aliases: ["velvia 100", "fujichrome velvia 100", "fujifilm velvia 100"],
+  },
+  {
+    id: "cinestill-800t",
+    brand: "CineStill",
+    name: "800T",
+    iso: 800,
+    type: "color",
+    process: "c41",
+    aliases: ["cinestill 800t", "cinestill 800 tungsten", "800tungsten", "cinestill 800"],
+  },
+  {
+    id: "cinestill-400d",
+    brand: "CineStill",
+    name: "400D",
+    iso: 400,
+    type: "color",
+    process: "c41",
+    aliases: ["cinestill 400d", "400dynamic", "cinestill 400 dynamic", "cinestill 400"],
+  },
+  {
+    id: "cinestill-50d",
+    brand: "CineStill",
+    name: "50D",
+    iso: 50,
+    type: "color",
+    process: "c41",
+    aliases: ["cinestill 50d", "50daylight", "cinestill 50 daylight", "cinestill 50"],
+  },
+  {
+    id: "ilford-fp4-125",
+    brand: "Ilford",
+    name: "FP4 Plus",
+    iso: 125,
+    type: "bw",
+    process: "bw",
+    aliases: ["ilford fp4", "fp4 plus", "fp4+", "fp4"],
+  },
+  {
+    id: "ilford-delta-100",
+    brand: "Ilford",
+    name: "Delta 100",
+    iso: 100,
+    type: "bw",
+    process: "bw",
+    aliases: ["ilford delta 100", "delta 100"],
+  },
+  {
+    id: "ilford-delta-3200",
+    brand: "Ilford",
+    name: "Delta 3200",
+    iso: 3200,
+    type: "bw",
+    process: "bw",
+    aliases: ["ilford delta 3200", "delta 3200"],
+  },
+  {
+    id: "ilford-xp2-400",
+    brand: "Ilford",
+    name: "XP2 Super",
+    iso: 400,
+    type: "bw",
+    // C-41 process black and white.
+    process: "c41",
+    aliases: ["ilford xp2", "xp2 super", "xp2"],
+  },
+  {
+    id: "kodak-t-max-p3200",
+    brand: "Kodak",
+    name: "T-MAX P3200",
+    iso: 3200,
+    type: "bw",
+    process: "bw",
+    aliases: ["t-max p3200", "tmax p3200", "kodak t-max 3200", "kodak tmax 3200", "t-max 3200"],
+  },
 ];
 
