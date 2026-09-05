@@ -38,6 +38,16 @@ sudo -n $DOCKER compose up -d --build
 migrations and the (idempotent) seed script on every start — existing price
 history is untouched.
 
+**`compose up` returning does not mean the API is ready.** The container runs
+`db:migrate` and `db:seed` before `npm run start`, so port 4000 refuses
+connections for ~10–15s after the container reports as up. Hitting it too early
+gives `curl: (56) Recv failure: Connection reset by peer`, which looks like a
+crash but isn't. Wait for readiness first:
+
+```bash
+until curl -sf http://192.168.0.9:4000/api/films >/dev/null; do sleep 2; done
+```
+
 ## Useful commands (run on the NAS, with `DOCKER` set as above)
 
 ```bash
