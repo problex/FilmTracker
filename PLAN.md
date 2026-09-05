@@ -369,19 +369,25 @@ Photo and Kerrisdale, so it stays on the browser path if it is ever wired up.
 
 Split by blast radius. **Most of this is deliberately not an LLM job.**
 
-### 4a. Daily health checks — deterministic, no LLM
-Wire up `scrape_runs` (Phase 0) and assert on it after each run: store returned zero
-listings, freshness ratio fell vs. the previous run, budget truncation fired, a film
-lost all offers, a price moved >40%. This is plain SQL — it catches every bug listed
-in *Known issues* above, costs nothing, and cannot hallucinate. Surface via the
-already-planned `GET /api/stores/health`.
+### 4a. Daily health checks — deterministic, no LLM ✅ done
+`GET /api/stores/health` computes status from `scrape_runs` plus current listing
+state, with no model involved. Issues raised: a store returning zero listings, a
+store returning under 70% of its previous run, a run truncating, a store with
+nothing seen in 48h, a film with no current offers, and a film in `filmSeeds` that
+never reached the database. Overall status is `ok` / `warn` / `error`.
 
-### 4b. Golden-fixture adapter tests — prerequisite for 4d
-No test runner exists yet. Save a real HTML/JSON response per store as a fixture and
-assert the adapter extracts a known price/stock value. Scrapers fail *silently* — a
-broken selector returns zero rows, which is indistinguishable from "store has no
-stock" — so this is the only reliable signal that an adapter still works. Milestone 3
-already called for "fixtures/tests per store"; this is that work.
+### 4b. Golden-fixture adapter tests ✅ done
+Vitest, run with `npm test`. 28 tests over two files:
+
+- `stores/shared.test.ts` — every parsing and matching bug that reached production,
+  written from the real listing titles that caused them.
+- `stores/adapters.test.ts` — the Shopify, WooCommerce and Beau Photo adapters run
+  against saved store responses (`stores/__fixtures__/`, refresh instructions in its
+  README). Only `fetchText` is stubbed, so all parsing is exercised for real.
+
+The suite was mutation-checked: reintroducing the old substring matcher fails exactly
+6 tests, on the bugs they encode. A suite that cannot fail is worth nothing, so this
+check is worth repeating whenever tests are added.
 
 ### 4c. Claude-assisted film discovery — in-app, propose only
 Phase 0 makes this nearly free: the bulk catalogs already contain every product each

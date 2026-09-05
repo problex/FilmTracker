@@ -1,0 +1,334 @@
+{
+  "products": [
+    {
+      "id": 7088688758975,
+      "title": "CineStill 800T High Speed Color Negative Film, 120",
+      "handle": "cinestill-800t-high-speed-color-negative-film-120",
+      "body_html": "<p data-mce-fragment=\"1\"><strong data-mce-fragment=\"1\">CINESTILL 800Tungsten</strong><span data-mce-fragment=\"1\"> is a unique color film for still photographers. This ISO 800 speed tungsten balanced color negative film is based on the same gold standard motion picture technology used by top cinematographers around the world. Designed for difficult low light tungsten situations, this flexible film is suitable for use in different lighting situations to achieve a variety of looks.</span></p>\n<p data-mce-fragment=\"1\"><span data-mce-fragment=\"1\">Our new and improved manufacturing process now extends the shelf life of 800T, with less noticeable artifacts after expiration. This advanced motion picture emulsion is optimized for a hybrid workflow, ideal for scanning, and safe to process in standard C-41 photo lab machines or Cs41 processing at home, but it may also be processed in Cs2 chemistry for low-contrast motion picture negatives. It also produces a complimentary contrast curve for optical printing on RA-4 paper when processed in C-41 chemistry. Treat this film as a high speed 800 ISO film for C-41 processing and push process whenever needed up to 3200 ISO!</span></p>",
+      "published_at": "2021-12-25T13:43:35-05:00",
+      "created_at": "2021-12-03T13:52:24-05:00",
+      "updated_at": "2026-09-05T18:53:07-04:00",
+      "vendor": "CineStill",
+      "product_type": "Color Negative",
+      "tags": [],
+      "variants": [
+        {
+          "id": 41092963500223,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "26.50",
+          "grams": 20,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7088688758975,
+          "created_at": "2021-12-03T13:52:24-05:00",
+          "updated_at": "2026-09-05T18:53:07-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 31055978201279,
+          "created_at": "2021-12-03T13:52:24-05:00",
+          "position": 1,
+          "updated_at": "2021-12-03T13:52:25-05:00",
+          "product_id": 7088688758975,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0604/2714/1311/products/MOD01347-Edit_1024x1024_6eb6aecd-2bb2-4e42-99a4-353e3ef5aa98.jpg?v=1638557545",
+          "width": 1000,
+          "height": 1000
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7088689119423,
+      "title": "CineStill 800T High Speed Color Negative Film, 35mm, 36exp.",
+      "handle": "copy-of-cinestill-800t-high-speed-color-negative-film-35mm-36exp",
+      "body_html": "<p><strong>CineStill 800 Tungsten</strong> is a distinctive color film crafted for still photographers, drawing from the renowned motion picture technology favored by leading cinematographers worldwide. With an ISO 800 speed and tungsten balance, this film excels in challenging low-light conditions and adapts to various lighting environments to create diverse visual effects.</p>\n<p>Our enhanced manufacturing process now extends the shelf life of 800T, reducing visible artifacts even after expiration. This sophisticated motion picture emulsion is tailored for a hybrid workflow, offering optimal results in scanning and compatibility with standard C-41 photo lab processing or home Cs41 development. Additionally, it can be processed using Cs2 chemistry for low-contrast motion picture negatives. When processed in C-41, it yields a complimentary contrast curve for RA-4 optical printing. CineStill 800T functions as a high-speed ISO 800 film for C-41 and can be pushed up to ISO 3200 when needed for more flexibility.</p>",
+      "published_at": "2021-12-25T13:43:50-05:00",
+      "created_at": "2021-12-03T13:54:06-05:00",
+      "updated_at": "2026-09-05T18:53:07-04:00",
+      "vendor": "CineStill",
+      "product_type": "Color Negative",
+      "tags": [],
+      "variants": [
+        {
+          "id": 41092965335231,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "28.49",
+          "grams": 20,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7088689119423,
+          "created_at": "2021-12-03T13:54:06-05:00",
+          "updated_at": "2026-09-05T18:53:07-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 31055986622655,
+          "created_at": "2021-12-03T13:54:18-05:00",
+          "position": 1,
+          "updated_at": "2021-12-03T13:54:19-05:00",
+          "product_id": 7088689119423,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0604/2714/1311/products/image_1024x1024_e4d0bdf3-cc13-4a39-9dd1-3083c426ab2c.jpg?v=1638557659",
+          "width": 833,
+          "height": 833
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6973194600639,
+      "title": "Ilford HP5 Plus - 120",
+      "handle": "ilford-hp5-plus-black-and-white-negative-film-120-roll-film",
+      "body_html": "<p data-mce-fragment=\"1\"><strong data-mce-fragment=\"1\">ILFORD HP5 PLUS</strong> is a high speed, fine grain, medium contrast black &amp; white film, making it an excellent choice for journalism, documentary, travel, sports, action and indoor available light photography.</p>\n<p data-mce-fragment=\"1\">Nominally rated at ISO 400, HP5 PLUS produces negatives of outstanding sharpness and fine grain under all lighting conditions. It has been formulated to respond well to push-processing and can be rated up to El 3200/36°.</p>\n<p data-mce-fragment=\"1\">Its wide exposure latitude makes it an excellent choice for beginners, those returning to film, and the more experienced professional users.</p>\n<p data-mce-fragment=\"1\">HP5 PLUS can be processed in a wide range of different developers using spiral tanks, deep tanks and automatic processors.</p>",
+      "published_at": "2021-09-21T15:38:56-04:00",
+      "created_at": "2021-09-21T15:38:46-04:00",
+      "updated_at": "2026-09-05T18:53:07-04:00",
+      "vendor": "Ilford",
+      "product_type": "B&W",
+      "tags": [],
+      "variants": [
+        {
+          "id": 40742244843711,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "13.45",
+          "grams": 15,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6973194600639,
+          "created_at": "2021-09-21T15:38:46-04:00",
+          "updated_at": "2026-09-05T18:53:07-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 30230076948671,
+          "created_at": "2021-09-22T20:53:05-04:00",
+          "position": 1,
+          "updated_at": "2021-09-22T20:53:06-04:00",
+          "product_id": 6973194600639,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0604/2714/1311/products/harman_product_photography3134.jpg?v=1632358386",
+          "width": 700,
+          "height": 700
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6975707709631,
+      "title": "Ilford HP5 Plus - 35mm, 24exp.",
+      "handle": "ilford-hp5-plus-35mm-24exp",
+      "body_html": "<meta charset=\"UTF-8\">\n<p data-mce-fragment=\"1\"><strong data-mce-fragment=\"1\">ILFORD HP5 PLUS</strong> is a high speed, fine grain, medium contrast black &amp; white film, making it an excellent choice for journalism, documentary, travel, sports, action and indoor available light photography.</p>\n<p data-mce-fragment=\"1\">Nominally rated at ISO 400, HP5 PLUS produces negatives of outstanding sharpness and fine grain under all lighting conditions. It has been formulated to respond well to push-processing and can be rated up to El 3200/36°.</p>\n<p data-mce-fragment=\"1\">Its wide exposure latitude makes it an excellent choice for beginners, those returning to film, and the more experienced professional users.</p>\n<p data-mce-fragment=\"1\">HP5 PLUS can be processed in a wide range of different developers using spiral tanks, deep tanks and automatic processors.</p>",
+      "published_at": "2021-09-22T21:08:42-04:00",
+      "created_at": "2021-09-22T21:03:58-04:00",
+      "updated_at": "2026-09-05T18:53:07-04:00",
+      "vendor": "Ilford",
+      "product_type": "B&W",
+      "tags": [],
+      "variants": [
+        {
+          "id": 40751781281983,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": false,
+          "price": "8.50",
+          "grams": 15,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6975707709631,
+          "created_at": "2021-09-22T21:03:58-04:00",
+          "updated_at": "2026-09-05T18:53:07-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 30230245540031,
+          "created_at": "2021-09-22T21:03:58-04:00",
+          "position": 1,
+          "updated_at": "2021-09-22T21:04:00-04:00",
+          "product_id": 6975707709631,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0604/2714/1311/products/hp5_135_36_c_b_8714df38-2b0e-4779-8aa8-144b11abeee4.jpg?v=1632359040",
+          "width": 700,
+          "height": 700
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6973192732863,
+      "title": "Ilford HP5 Plus - 35mm, 36 exp.",
+      "handle": "ilford-hp5-plus-35mm",
+      "body_html": "<p data-mce-fragment=\"1\"><strong data-mce-fragment=\"1\">ILFORD HP5 PLUS</strong> is a high speed, fine grain, medium contrast black &amp; white film, making it an excellent choice for journalism, documentary, travel, sports, action and indoor available light photography.</p>\n<p data-mce-fragment=\"1\">Nominally rated at ISO 400, HP5 PLUS produces negatives of outstanding sharpness and fine grain under all lighting conditions. It has been formulated to respond well to push-processing and can be rated up to El 3200/36°.</p>\n<p data-mce-fragment=\"1\">Its wide exposure latitude makes it an excellent choice for beginners, those returning to film, and the more experienced professional users.</p>\n<p data-mce-fragment=\"1\">HP5 PLUS can be processed in a wide range of different developers using spiral tanks, deep tanks and automatic processors.</p>",
+      "published_at": "2021-09-21T15:32:40-04:00",
+      "created_at": "2021-09-21T15:32:39-04:00",
+      "updated_at": "2026-09-05T18:53:07-04:00",
+      "vendor": "Ilford",
+      "product_type": "B&W",
+      "tags": [],
+      "variants": [
+        {
+          "id": 40742234620095,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "14.99",
+          "grams": 15,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 6973192732863,
+          "created_at": "2021-09-21T15:32:39-04:00",
+          "updated_at": "2026-09-05T18:53:07-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 30229800845503,
+          "created_at": "2021-09-22T20:33:12-04:00",
+          "position": 1,
+          "updated_at": "2021-09-22T20:33:13-04:00",
+          "product_id": 6973192732863,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0604/2714/1311/products/hp5_135_36_c_b.jpg?v=1632357193",
+          "width": 700,
+          "height": 700
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7090338791615,
+      "title": "Ilford HP5+ Bulk 100ft box, 35mm",
+      "handle": "ilford-hp5-100ft-box-35mm",
+      "body_html": "<b>Ilford's HP5 Plus Black and White Negative Film</b><span> is a traditional and versatile panchromatic film designed for general use in a wide variety of shooting conditions. Exhibiting notably wide exposure latitude, this film responds well to use in mixed and difficult lighting and provides medium contrast for greater overall control. It has a nominal sensitivity of ISO 400/27° when developed in standard black and white chemistry, and responds well to push processing. HP5 Plus is a flexible film type that is ideally suited for use in general photographic applications in an array of different lighting conditions.</span>",
+      "published_at": "2021-12-04T17:44:56-05:00",
+      "created_at": "2021-12-04T17:43:01-05:00",
+      "updated_at": "2026-09-05T18:53:07-04:00",
+      "vendor": "Ilford",
+      "product_type": "B&W",
+      "tags": [],
+      "variants": [
+        {
+          "id": 41096445624511,
+          "title": "Default Title",
+          "option1": "Default Title",
+          "option2": null,
+          "option3": null,
+          "sku": "",
+          "requires_shipping": true,
+          "taxable": true,
+          "featured_image": null,
+          "available": true,
+          "price": "179.99",
+          "grams": 100,
+          "compare_at_price": null,
+          "position": 1,
+          "product_id": 7090338791615,
+          "created_at": "2021-12-04T17:43:01-05:00",
+          "updated_at": "2026-09-05T18:53:07-04:00"
+        }
+      ],
+      "images": [
+        {
+          "id": 31064772182207,
+          "created_at": "2021-12-04T17:43:01-05:00",
+          "position": 1,
+          "updated_at": "2021-12-04T17:43:03-05:00",
+          "product_id": 7090338791615,
+          "variant_ids": [],
+          "src": "https://cdn.shopify.com/s/files/1/0604/2714/1311/products/1256644374_24734.jpg?v=1638657783",
+          "width": 500,
+          "height": 500
+        }
+      ],
+      "options": [
+        {
+          "name": "Title",
+          "position": 1,
+          "values": [
+            "Default Title"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,395 @@
+[
+  {
+    "id": 2249,
+    "name": "Ilford HP5 Plus 400",
+    "slug": "ilford-hp5",
+    "parent": 0,
+    "type": "variable",
+    "variation": "",
+    "permalink": "https://www.beauphoto.com/product/ilford-hp5/",
+    "sku": "",
+    "short_description": "<p>Medium contrast film rated at ISO 400. It has a wide exposure latitude if you choose to push process it. Great for general purpose photography.</p>\n<p>Available in 35mm roll, 120 roll, 100ft 35mm bulk roll, 4&#215;5 sheet and 8&#215;10 sheet film sizes.</p>",
+    "description": "<p>Student pricing available.</p>\n<p>Ilford HP5 Datasheet: <a href=\"https://www.ilfordphoto.com/amfile/file/download/file/1903/product/691/\" target=\"_blank\" rel=\"noopener noreferrer\">https://www.ilfordphoto.com/amfile/file/download/file/1903/product/691/</a></p>",
+    "on_sale": false,
+    "prices": {
+      "price": "1695",
+      "regular_price": "1695",
+      "sale_price": "1695",
+      "price_range": {
+        "min_amount": "1695",
+        "max_amount": "32795"
+      },
+      "currency_code": "CAD",
+      "currency_symbol": "$",
+      "currency_minor_unit": 2,
+      "currency_decimal_separator": ".",
+      "currency_thousand_separator": ",",
+      "currency_prefix": "$",
+      "currency_suffix": ""
+    },
+    "price_html": "<span class=\"woocommerce-Price-amount amount\" aria-hidden=\"true\"><span class=\"woocommerce-Price-currencySymbol\">&#036;</span>16.95</span> <span aria-hidden=\"true\">&ndash;</span> <span class=\"woocommerce-Price-amount amount\" aria-hidden=\"true\"><span class=\"woocommerce-Price-currencySymbol\">&#036;</span>327.95</span><span class=\"screen-reader-text\">Price range: &#036;16.95 through &#036;327.95</span>",
+    "average_rating": "0",
+    "review_count": 0,
+    "images": [
+      {
+        "id": 3511,
+        "src": "https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5.jpg",
+        "thumbnail": "https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-150x150.jpg",
+        "srcset": "https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5.jpg 1200w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-150x150.jpg 150w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-300x300.jpg 300w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-500x500.jpg 500w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-400x400.jpg 400w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-1024x1024.jpg 1024w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-116x116.jpg 116w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_hp5-233x233.jpg 233w",
+        "sizes": "(max-width: 1200px) 100vw, 1200px",
+        "name": "Ilford HP5",
+        "alt": ""
+      }
+    ],
+    "categories": [
+      {
+        "id": 254,
+        "name": "Black &amp; White Film and Paper",
+        "slug": "black-white-film-and-paper",
+        "link": "https://www.beauphoto.com/product-category/film-and-darkroom/black-white-film-and-paper/"
+      },
+      {
+        "id": 2384,
+        "name": "New",
+        "slug": "new",
+        "link": "https://www.beauphoto.com/product-category/new/"
+      },
+      {
+        "id": 2592,
+        "name": "ST",
+        "slug": "st",
+        "link": "https://www.beauphoto.com/product-category/st/"
+      }
+    ],
+    "tags": [
+      {
+        "id": 302,
+        "name": "120",
+        "slug": "120",
+        "link": "https://www.beauphoto.com/product-tag/120/"
+      },
+      {
+        "id": 301,
+        "name": "35mm",
+        "slug": "35mm",
+        "link": "https://www.beauphoto.com/product-tag/35mm/"
+      },
+      {
+        "id": 503,
+        "name": "4x5",
+        "slug": "4x5",
+        "link": "https://www.beauphoto.com/product-tag/4x5/"
+      },
+      {
+        "id": 592,
+        "name": "8x10",
+        "slug": "8x10",
+        "link": "https://www.beauphoto.com/product-tag/8x10/"
+      },
+      {
+        "id": 267,
+        "name": "B&amp;W film",
+        "slug": "bw-film",
+        "link": "https://www.beauphoto.com/product-tag/bw-film/"
+      },
+      {
+        "id": 803,
+        "name": "Bulk Film",
+        "slug": "bulk-film",
+        "link": "https://www.beauphoto.com/product-tag/bulk-film/"
+      },
+      {
+        "id": 266,
+        "name": "Film",
+        "slug": "film",
+        "link": "https://www.beauphoto.com/product-tag/film/"
+      },
+      {
+        "id": 265,
+        "name": "Ilford",
+        "slug": "ilford",
+        "link": "https://www.beauphoto.com/product-tag/ilford/"
+      }
+    ],
+    "brands": [],
+    "attributes": [
+      {
+        "id": 14,
+        "name": "Film Format",
+        "taxonomy": "pa_film-format",
+        "has_variations": true,
+        "terms": [
+          {
+            "id": 262,
+            "name": "120",
+            "slug": "120"
+          },
+          {
+            "id": 1974,
+            "name": "35mm - 100' roll",
+            "slug": "35mm-100-roll"
+          },
+          {
+            "id": 261,
+            "name": "35mm - 36 exp.",
+            "slug": "35mm"
+          },
+          {
+            "id": 3825,
+            "name": "4x5 (100)",
+            "slug": "4x5-100"
+          },
+          {
+            "id": 1956,
+            "name": "4x5 (25)",
+            "slug": "4x5-25"
+          },
+          {
+            "id": 1957,
+            "name": "8x10 (25)",
+            "slug": "8x10-25"
+          }
+        ]
+      }
+    ],
+    "variations": [
+      {
+        "id": 29474,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "35mm"
+          }
+        ]
+      },
+      {
+        "id": 29584,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "35mm-100-roll"
+          }
+        ]
+      },
+      {
+        "id": 29473,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "120"
+          }
+        ]
+      },
+      {
+        "id": 29472,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "4x5-25"
+          }
+        ]
+      },
+      {
+        "id": 2250,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "8x10-25"
+          }
+        ]
+      }
+    ],
+    "grouped_products": [],
+    "has_options": true,
+    "is_purchasable": true,
+    "is_in_stock": true,
+    "is_on_backorder": false,
+    "low_stock_remaining": null,
+    "stock_availability": {
+      "text": "",
+      "class": "in-stock"
+    },
+    "sold_individually": false,
+    "add_to_cart": {
+      "text": "Select options",
+      "description": "Select options for &ldquo;Ilford HP5 Plus 400&rdquo;",
+      "url": "https://www.beauphoto.com/product/ilford-hp5/",
+      "single_text": "Add to cart",
+      "minimum": 1,
+      "maximum": 9999,
+      "multiple_of": 1
+    },
+    "extensions": {}
+  },
+  {
+    "id": 4465,
+    "name": "Ilford Delta 400",
+    "slug": "ilford-delta-400",
+    "parent": 0,
+    "type": "variable",
+    "variation": "",
+    "permalink": "https://www.beauphoto.com/product/ilford-delta-400/",
+    "sku": "",
+    "short_description": "<p>Black and white 400 ISO film that has a combination of speed and sharpness with a width of tonal range that retains subtlety and detail. Great for action photography! Produces excellent results in low lighting situations. Available in 35mm roll, 120 roll film sizes</p>",
+    "description": "<p>Student pricing available.</p>\n<p><a href=\"https://www.beauphoto.com/wp-content/uploads/Ilford_Delta400.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Ilford Delta 400 Technical Info</a></p>\n<p><a href=\"https://www.beauphoto.com/wp-content/uploads/ilford_processing_chart.pdf\" target=\"_blank\" rel=\"noopener noreferrer\">Ilford Film Processing Chart</a></p>",
+    "on_sale": false,
+    "prices": {
+      "price": "1595",
+      "regular_price": "1595",
+      "sale_price": "1595",
+      "price_range": {
+        "min_amount": "1595",
+        "max_amount": "21095"
+      },
+      "currency_code": "CAD",
+      "currency_symbol": "$",
+      "currency_minor_unit": 2,
+      "currency_decimal_separator": ".",
+      "currency_thousand_separator": ",",
+      "currency_prefix": "$",
+      "currency_suffix": ""
+    },
+    "price_html": "<span class=\"woocommerce-Price-amount amount\" aria-hidden=\"true\"><span class=\"woocommerce-Price-currencySymbol\">&#036;</span>15.95</span> <span aria-hidden=\"true\">&ndash;</span> <span class=\"woocommerce-Price-amount amount\" aria-hidden=\"true\"><span class=\"woocommerce-Price-currencySymbol\">&#036;</span>210.95</span><span class=\"screen-reader-text\">Price range: &#036;15.95 through &#036;210.95</span>",
+    "average_rating": "0",
+    "review_count": 0,
+    "images": [
+      {
+        "id": 3508,
+        "src": "https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400.jpg",
+        "thumbnail": "https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-150x150.jpg",
+        "srcset": "https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400.jpg 1200w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-150x150.jpg 150w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-300x300.jpg 300w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-500x500.jpg 500w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-400x400.jpg 400w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-1024x1024.jpg 1024w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-116x116.jpg 116w, https://www.beauphoto.com/wp-content/uploads/film/Film-amp-Paper/Film/Ilford_kentmere/ilford_delta400-233x233.jpg 233w",
+        "sizes": "(max-width: 1200px) 100vw, 1200px",
+        "name": "Ilford Delta 400",
+        "alt": ""
+      }
+    ],
+    "categories": [
+      {
+        "id": 254,
+        "name": "Black &amp; White Film and Paper",
+        "slug": "black-white-film-and-paper",
+        "link": "https://www.beauphoto.com/product-category/film-and-darkroom/black-white-film-and-paper/"
+      },
+      {
+        "id": 2384,
+        "name": "New",
+        "slug": "new",
+        "link": "https://www.beauphoto.com/product-category/new/"
+      },
+      {
+        "id": 2592,
+        "name": "ST",
+        "slug": "st",
+        "link": "https://www.beauphoto.com/product-category/st/"
+      }
+    ],
+    "tags": [
+      {
+        "id": 302,
+        "name": "120",
+        "slug": "120",
+        "link": "https://www.beauphoto.com/product-tag/120/"
+      },
+      {
+        "id": 301,
+        "name": "35mm",
+        "slug": "35mm",
+        "link": "https://www.beauphoto.com/product-tag/35mm/"
+      },
+      {
+        "id": 267,
+        "name": "B&amp;W film",
+        "slug": "bw-film",
+        "link": "https://www.beauphoto.com/product-tag/bw-film/"
+      },
+      {
+        "id": 266,
+        "name": "Film",
+        "slug": "film",
+        "link": "https://www.beauphoto.com/product-tag/film/"
+      },
+      {
+        "id": 265,
+        "name": "Ilford",
+        "slug": "ilford",
+        "link": "https://www.beauphoto.com/product-tag/ilford/"
+      }
+    ],
+    "brands": [],
+    "attributes": [
+      {
+        "id": 14,
+        "name": "Film Format",
+        "taxonomy": "pa_film-format",
+        "has_variations": true,
+        "terms": [
+          {
+            "id": 262,
+            "name": "120",
+            "slug": "120"
+          },
+          {
+            "id": 1974,
+            "name": "35mm - 100' roll",
+            "slug": "35mm-100-roll"
+          },
+          {
+            "id": 261,
+            "name": "35mm - 36 exp.",
+            "slug": "35mm"
+          }
+        ]
+      }
+    ],
+    "variations": [
+      {
+        "id": 66947,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "35mm-100-roll"
+          }
+        ]
+      },
+      {
+        "id": 29461,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "35mm"
+          }
+        ]
+      },
+      {
+        "id": 29460,
+        "attributes": [
+          {
+            "name": "Film Format",
+            "value": "120"
+          }
+        ]
+      }
+    ],
+    "grouped_products": [],
+    "has_options": true,
+    "is_purchasable": true,
+    "is_in_stock": true,
+    "is_on_backorder": false,
+    "low_stock_remaining": null,
+    "stock_availability": {
+      "text": "",
+      "class": "in-stock"
+    },
+    "sold_individually": false,
+    "add_to_cart": {
+      "text": "Select options",
+      "description": "Select options for &ldquo;Ilford Delta 400&rdquo;",
+      "url": "https://www.beauphoto.com/product/ilford-delta-400/",
+      "single_text": "Add to cart",
+      "minimum": 1,
+      "maximum": 9999,
+      "multiple_of": 1
+    },
+    "extensions": {}
+  }
+]

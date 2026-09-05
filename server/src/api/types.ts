@@ -58,3 +58,24 @@ export type MultipackDealDto = {
   singleStoreName: string;
   savingPercent: number;
 };
+
+export type HealthIssueDto = {
+  severity: "error" | "warn";
+  storeId: string | null;
+  kind: "no_listings" | "truncated" | "listing_drop" | "stale" | "film_no_offers" | "film_not_seeded";
+  detail: string;
+};
+
+export type StoreHealthDto = {
+  storeId: string;
+  storeName: string;
+  /** Listings seen within the freshness window. */
+  freshListings: number;
+  /** From the latest finished run; null when the store did not run. */
+  inserted: number | null;
+  previousInserted: number | null;
+  truncated: boolean | null;
+  mode: string | null;
+  durationMs: number | null;
+  errorCount: number | null;
+};
