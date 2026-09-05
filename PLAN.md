@@ -154,6 +154,20 @@ removes the truncation entirely.
   This is expected to fix Graination outright.
 - **Browser stores** (`dons-photo`, `kerrisdale`) stay per-film; they are inherently
   slow and need separate treatment.
+
+### Phase 0 follow-up — Beau Photo *(not done)*
+
+Beau Photo needs more than a transport swap, so it was left on the per-film path:
+
+- Its Store API works and exposes 2,317 products (24 pages at `per_page=100`).
+- But its titles omit the format entirely — `"Candido 400 Colour Film"`,
+  `"Fujifilm Colour 200"`, `"Fujifilm Neopan 100 Acros II"` — so `looksLike35mm()`
+  rejects them and the store yields only a handful of listings.
+- Categories (`Colour Film and Paper`, `Black & White Film and Paper`) identify
+  *film* but not *format*, and include paper; the store also sells 120.
+
+So this needs format inference (category + title + possibly the product page)
+rather than the title regex. Blocks Candido — see Phase 2.
 - **Make truncation loud**: persist each run to `scrape_runs` (this is Milestone 4's
   "scrape run logs") and record budget-exceeded as a `partial` status rather than
   letting it pass unnoticed.
@@ -237,6 +251,37 @@ Kentmere PAN 100 / PAN 200, Fujifilm Provia 100F, Velvia 50, Acros 100 II,
 Harman RED 125, Kodak Pro Image 100, Kodacolor 100 / 200, Fomapan 100 / 200 / 400,
 Lomography CN 400 / CN 800 / Metropolis, CineStill BwXX, and Flic Film
 (Canadian — Aurora 400, Elektra 100, Cine Colour 250D / 500T).
+
+### Candido — ⚠️ blocked on Beau Photo
+
+**Candido 200 / 400 / 800** (Candido Collective, UK). All three are C-41 colour
+negative respools of Kodak Vision3 with the remjet removed — the same idea as
+CineStill: 200 ← Kodak 200T, 400 ← Kodak 250D, 800 ← Kodak 500T. 35mm, 36 exp.
+
+Unlike everything else in Phase 1/2, Candido was **not** picked from the
+availability survey — it is stocked at exactly one surveyed store, and that store
+is the one that doesn't currently work:
+
+| Store | Candido 200 | Candido 400 | Candido 800 |
+|---|---|---|---|
+| Beau Photo | $25.95, in stock | $25.95, in stock | $25.95, out of stock |
+| Popho / Studio Argentique / Aden / Graination | — | — | — |
+
+Two blockers, both in Beau Photo rather than in the catalogue entry:
+
+1. **Titles carry no format marker.** The listings are literally
+   `"Candido 400 Colour Film"` — no `35mm`, no `135` — so `looksLike35mm()`
+   rejects them outright. This is the same reason Beau Photo only yields ~3–6
+   listings overall.
+2. **Beau Photo is still per-film mode** and its catalogue is 2,317 products
+   (24 pages via the Store API), so it needs the bulk conversion too.
+
+Its categories (`Colour Film and Paper` / `Black & White Film and Paper`) confirm
+*film* but not *format*, and it sells 120 as well — so this needs real format
+inference, not just a transport swap.
+
+**Adding Candido to `filmSeeds` before that work lands would produce zero listings
+at every store.** Sequence it after the Beau Photo adapter work.
 
 ## Phase 3 — Cleanup
 
