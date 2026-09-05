@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { filmsRouter } from "./api/films.js";
 import { pricesRouter } from "./api/prices.js";
 import { adminRouter } from "./api/admin.js";
+import { dealsRouter } from "./api/deals.js";
 import { startScrapeScheduler } from "./scrape/schedule.js";
 import { buildCorsOptions } from "./corsOrigins.js";
 
@@ -21,6 +22,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/films", filmsRouter);
 app.use("/api/prices", pricesRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/deals", dealsRouter);
 
 const port = Number(process.env.PORT ?? 4000);
 const listenHost = process.env.LISTEN_HOST ?? "0.0.0.0";

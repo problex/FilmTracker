@@ -469,3 +469,97 @@ th {
   }
 }
 
+
+/* Expired-film deals callout */
+.deals {
+  margin-bottom: 16px;
+  border-color: rgba(251, 191, 36, 0.35);
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.08), transparent), var(--card);
+}
+
+.dealsHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dealsTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.dealsCount {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0b0f17;
+  background: #fbbf24;
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.dealsDismiss {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 9px;
+}
+
+.dealsDismiss:hover {
+  color: var(--text);
+}
+
+.dealsHint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 6px 0 10px;
+}
+
+.dealsList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.dealRow {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dealLink {
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.dealLink:hover {
+  text-decoration: underline;
+}
+
+.dealPrice {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.dealOff {
+  font-size: 12px;
+  font-weight: 600;
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+  border-radius: 999px;
+  padding: 1px 8px;
+}
+
+.dealMeta {
+  font-size: 12px;
+}

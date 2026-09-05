@@ -13,6 +13,20 @@ type Offer = {
   inStock?: boolean;
 };
 
+type ExpiredDeal = {
+  filmId: string;
+  brand: string;
+  name: string;
+  storeId: string;
+  storeName: string;
+  url: string;
+  titleRaw: string;
+  expiryLabel: string | null;
+  priceCadCents: number;
+  freshPriceCadCents: number;
+  discountPercent: number;
+};
+
 type FilmWithTopOffers = {
   filmId: string;
   brand: string;
@@ -58,6 +72,8 @@ export function App() {
   const [selectedFilmOffers, setSelectedFilmOffers] = useState<Offer[] | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryPoint[] | null>(null);
   const [selectedFilmLoading, setSelectedFilmLoading] = useState(false);
+  const [expiredDeals, setExpiredDeals] = useState<ExpiredDeal[] | null>(null);
+  const [dealsDismissed, setDealsDismissed] = useState(false);
 
   async function loadPrices() {
     setError(null);
@@ -82,6 +98,24 @@ export function App() {
   useEffect(() => {
     void loadPrices();
   }, [variant, hideOutOfStock, filmType]);
+
+  // Expired-stock deals are independent of the table filters, so load them once.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/deals/expired`);
+        if (!res.ok) return;
+        const json = (await res.json()) as { deals: ExpiredDeal[] };
+        if (!cancelled) setExpiredDeals(json.deals);
+      } catch {
+        // A deals failure must never block the price table.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setSelectedFilmId(null);
@@ -177,6 +211,45 @@ export function App() {
           </select>
         </div>
       </header>
+
+      {expiredDeals && expiredDeals.length > 0 && !dealsDismissed && (
+        <div className="card deals">
+          <div className="dealsHead">
+            <div className="dealsTitle">
+              Expired film deals
+              <span className="dealsCount">{expiredDeals.length}</span>
+            </div>
+            <button
+              type="button"
+              className="dealsDismiss"
+              onClick={() => setDealsDismissed(true)}
+              aria-label="Dismiss expired film deals"
+            >
+              ×
+            </button>
+          </div>
+          <div className="dealsHint">
+            In stock and cheaper than the lowest fresh price. Expired film is excluded from the
+            table below.
+          </div>
+          <ul className="dealsList">
+            {expiredDeals.map((d) => (
+              <li key={`${d.storeId}:${d.url}`} className="dealRow">
+                <a className="dealLink" href={d.url} target="_blank" rel="noreferrer noopener">
+                  {d.brand} {d.name}
+                </a>
+                <span className="dealPrice">{formatCad(d.priceCadCents)}</span>
+                <span className="dealOff">{d.discountPercent}% off</span>
+                <span className="muted dealMeta">
+                  {d.storeName}
+                  {d.expiryLabel ? ` · exp ${d.expiryLabel}` : ""} · fresh{" "}
+                  {formatCad(d.freshPriceCadCents)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {error && <div className="card error">Error: {error}</div>}
       {!error && films === null && <div className="card">Loading…</div>}
