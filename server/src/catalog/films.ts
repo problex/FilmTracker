@@ -16,6 +16,11 @@ export type FilmSeed = {
    * Never applied to bulk rolls, which have no exposure count.
    */
   defaultExposures?: 24 | 36;
+  /**
+   * Pack size to assume when a listing's title doesn't state one. For products only
+   * ever sold as a fixed bundle, where no title says "3 pack".
+   */
+  defaultPackSize?: number;
 };
 
 export const filmSeeds: FilmSeed[] = [
@@ -490,6 +495,21 @@ export const filmSeeds: FilmSeed[] = [
     type: "color",
     process: "c41",
     aliases: ["elektra 100"],
+  },
+
+  {
+    id: "lomography-analog-trio",
+    brand: "Lomography",
+    // A bundle of three different LomoChrome stocks, not three rolls of one film, so
+    // it is tracked as its own product. The contents change over time — the current
+    // pack is Metropolis / Purple / SunKissed, an earlier one had Turquoise — so the
+    // name deliberately doesn't list them.
+    name: "Analog Trio (3 rolls)",
+    iso: null,
+    type: "color",
+    process: "c41",
+    defaultPackSize: 3,
+    aliases: ["lomography analog trio", "analog trio"],
   },
 
   // Candido: stocked only at Beau Photo, unblocked by its bulk adapter. C-41

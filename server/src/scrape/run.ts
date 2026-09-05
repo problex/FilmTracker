@@ -168,6 +168,12 @@ function resolveExposures(
   return filmSeeds.find((f) => f.id === filmId)?.defaultExposures ?? null;
 }
 
+/** Pack size for a listing: what the title said, else the film's fixed-bundle size. */
+function resolvePackSize(candidate: { packSize: number | null }, filmId: string): number | null {
+  if (candidate.packSize != null) return candidate.packSize;
+  return filmSeeds.find((f) => f.id === filmId)?.defaultPackSize ?? null;
+}
+
 type StoreResult = {
   storeId: string;
   inserted: number;
@@ -284,7 +290,7 @@ export async function runScrape() {
               filmId: film.id,
               url: c.url,
               titleRaw: c.titleRaw,
-              packSize: c.packSize,
+              packSize: resolvePackSize(c, film.id),
               exposures: resolveExposures(c, film.id),
               isBulk: c.isBulk,
               isExpired: c.isExpired,
@@ -321,7 +327,7 @@ export async function runScrape() {
               filmId: film.id,
               url: c.url,
               titleRaw: c.titleRaw,
-              packSize: c.packSize,
+              packSize: resolvePackSize(c, film.id),
               exposures: resolveExposures(c, film.id),
               isBulk: c.isBulk,
               isExpired: c.isExpired,
@@ -415,7 +421,7 @@ export async function runScrape() {
           filmId: p.filmId,
           url: p.url,
           titleRaw: listing.titleRaw,
-          packSize: listing.packSize,
+          packSize: resolvePackSize({ packSize: listing.packSize }, p.filmId),
           exposures: resolveExposures({ exposures: listing.exposures, isBulk: listing.bulk }, p.filmId),
           isBulk: listing.bulk,
           isExpired: listing.isExpired,
