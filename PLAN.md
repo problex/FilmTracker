@@ -5,15 +5,16 @@ Track **popular 35mm film** prices from **Canadian stores only** and display, fo
 
 ## Stores (locked)
 - Aden Camera (Toronto, ON) ✅ *implemented (Shopify)*
-- Beau Photo (Vancouver, BC) ✅ *implemented (WooCommerce)*
-- Dons Photo (Canada) ⚠️ *implemented (browser adapter) — only completes ~1 film per run*
-- DowntownCamera (Toronto, ON) ⏸️ *adapter file exists, not wired into `runScrape()`*
-- Graination (Toronto, ON) ❌ *implemented but returning 0 listings — see Known issues*
-- Kerrisdale Cameras (Vancouver, BC) ❌ *no successful scrape since 2026-07-28*
-- Lord Photo (Saint-Jean-sur-Richelieu, QC) ⏸️ *adapter file exists, not wired into `runScrape()`*
+- FilmWarehouse (online, CA) ✅ *implemented (WooCommerce Store API)*
+- Beau Photo (Vancouver, BC) ✅ *implemented (WooCommerce Store API, tag/variation format detection)*
+- Dons Photo (Canada) ⚠️ *implemented (browser adapter, DOM selectors) — truncates; browser stores are slow*
+- DowntownCamera (Toronto, ON) ⚠️ *one pinned product URL only; its Dakis search returns no product results*
+- Graination (Toronto, ON) ✅ *implemented (WooCommerce Store API)*
+- Kerrisdale Cameras (Vancouver, BC) ⚠️ *implemented (browser adapter) — truncates*
+- Lord Photo (Saint-Jean-sur-Richelieu, QC) ❌ *no working mechanism; its Dakis search returns no product results*
 - Popho Camera (Montréal, QC) ✅ *implemented (Shopify)*
 - Studio Argentique (Montréal, QC) ✅ *implemented (Shopify)*
-- TheCameraStore (Calgary, AB) ⚠️ *implemented — truncates at ~10 of 16 films per run*
+- TheCameraStore (Calgary, AB) ✅ *implemented (Shopify)*
 
 ## Comparison rules (v1 current)
 - **Format**: 35mm / 135 only (non-35mm excluded).
@@ -62,9 +63,9 @@ Monorepo with:
 - `films`: canonical film entries
 - `film_aliases`: alias strings for matching
 - `listings`: store URLs mapped to a film + parsed pack size + exposures + bulk flag
-  - planned: `is_expired` + `expiry_label` (*Phase 1*)
+  - `is_expired` + `expiry_label` (migration 003)
 - `price_snapshots`: time series of price + stock
-- `scrape_runs`: bookkeeping for each run + per-store status — ⚠️ **table exists but is never written to** (*Phase 0*)
+- `scrape_runs`: bookkeeping for each run + per-store status (written on every run)
 - `film_candidates`: proposed catalog entries awaiting approval (planned, *Phase 4c*)
 
 ## API (v1)
@@ -75,13 +76,20 @@ Monorepo with:
 - `GET /api/films/:id/price-history?inStock=true|false&variant=…` → **daily lowest in-stock price** (UTC buckets) for the **last 6 months**, matching the same variant / in-stock filters as `/api/prices` (Postgres + SQLite)
 - `GET /api/stores/health` (admin-ish, optional — not implemented yet; see *Phase 4a*)
 - `POST /api/admin/scrape` → runs scrape for implemented stores (no public UI button; server/CLI only)
-- `GET /api/deals/expired` → expired-stock deals vs. cheapest fresh price (planned, *Phase 1.5*)
+- `GET /api/deals/expired?minDiscount=` → in-stock expired/short-dated stock vs. the
+  cheapest fresh offer of the same film, pack size, bulk flag and exposure count
+- `GET /api/deals/multipacks?minSaving=&maxSaving=` → multipacks cheaper per roll than
+  the cheapest comparable single roll
 
 ## Store adapter contract (v1)
 Input: `FilmProduct` (canonical + aliases)
 
 Output: `ListingCandidate[]`
-- `titleRaw`, `url`, `priceCad`, `currency`, `inStock`, `packSize`, `exposures`, `isBulk`, `lastCheckedAt`
+- `titleRaw`, `url`, `priceCad`, `currency`, `inStock`, `packSize`, `exposures`, `isBulk`, `isExpired`, `expiryLabel`, `lastCheckedAt`
+
+Adapters may also implement `fetchCandidatesForAllFilms(films)` to fetch a whole
+catalogue at once (Shopify `products.json`, WooCommerce Store API); `runScrape()`
+prefers it and falls back to the per-film path for browser-driven stores.
 
 Notes:
 - Prefer structured sources (JSON-LD, embedded JSON) when available; fall back to HTML selectors.
@@ -100,9 +108,12 @@ Notes:
 
 # Catalog expansion & automation (planned, 2026-09-05)
 
-## Known issues (measured, not assumed)
+## Known issues as of 2026-09-05 — the evidence these phases were built on
 
-**The scrape loop is over budget and silently dropping films.** `runScrape()` iterates
+*Status markers added as each was resolved; kept because the measurements explain why
+the work was sequenced this way.*
+
+**The scrape loop is over budget and silently dropping films.** ✅ *fixed in Phase 0* `runScrape()` iterates
 *store × film*, calling `fetchCandidatesForFilm()` once per film. A single Shopify
 film-search costs **~5.5s** (1 search request + up to 20 `/products/<handle>.js`
 fetches). At 17 films that is ~95s against the **90s** `STORE_BUDGET_MS`, so the
@@ -125,16 +136,29 @@ Consequences:
   but nothing is persisted and the stale rows simply remain.
 
 Also outstanding:
-- **`scrape_runs` is never written to** (0 rows). The table and its schema
-  (`status`, `totals` JSONB, `error_summary`) exist but no code inserts into it.
-- **Graination** returns 0 listings; all 20 of its rows sit at the
-  `markStoreListingsStale()` epoch sentinel.
-- **Kerrisdale** and **DowntownCamera** have no successful scrape since 2026-07-28.
-- **Orphan film row**: `kodak-ektacolor` exists in `films` with 0 listings and is no
-  longer in `filmSeeds`; it renders in the UI with no prices.
-- **`process: "e6"`** is defined in `FilmSeed` but no catalog entry uses it — slide
-  film is an untapped category the schema already supports.
-- **No tests anywhere** in the repo (no test runner, no fixtures).
+- ✅ **`scrape_runs` is never written to** (0 rows) — now written on every run (Phase 0).
+- ✅ **Graination** returns 0 listings — fixed by moving to the WooCommerce Store API.
+- ✅ **Kerrisdale** and **DowntownCamera** have no successful scrape since 2026-07-28 —
+  Kerrisdale scrapes again; DowntownCamera runs via its pinned URL only.
+- ✅ **Orphan film row** `kodak-ektacolor` — deleted (Phase 3).
+- ✅ **`process: "e6"`** unused — Ektachrome E100, Velvia 100, Velvia 50 and Provia
+  100F now use it.
+- ⬜ **No tests anywhere** in the repo (no test runner, no fixtures) — still true, and
+  the largest remaining gap. See *Phase 4b*.
+
+Found later, while doing the work:
+- ✅ **Alias matching mis-assigned whole films.** Kentmere PAN 100/200 were priced as
+  PAN 400 at four stores. Four distinct faults: ISO matching inside other numbers
+  ("delta 100" vs "100ft"), a short-token rule that skipped two-digit ISOs so
+  "cinestill 50" matched every CineStill, a bare "kodak ektachrome" catching Super 8,
+  and "harman red" matching every Harman listing marked "Expi**red**".
+- ✅ **Browser adapters scraped whole pages as single listings.** Dons Photo recorded a
+  3-pack at the single-roll price, with the pack size taken from a different product
+  on the same search page; titles averaged 1,285 characters. Now read via DOM
+  selectors, with attributes taken from the product title only.
+- ✅ **Deal comparisons were apples-to-oranges.** Expired multipacks were measured
+  against fresh single rolls, so no multipack could ever surface as a deal; fresh
+  prices are now grouped by pack size, bulk flag and exposure count.
 
 ## Phase 0 — Make the pipeline able to absorb more films *(prerequisite)*
 
@@ -285,13 +309,21 @@ at every store.** Sequence it after the Beau Photo adapter work.
 
 ## Phase 3 — Cleanup and new stores
 
-### Cleanup
-- Delete the orphan `kodak-ektacolor` row.
-- Wire up or delete `stores/downtownCamera.ts` and `stores/lordPhoto.ts`.
-- Diagnose Kerrisdale (`scripts/diagnose-kerrisdale.ts` already exists).
-- Fix the pinned-listing title extraction: it takes the first rendered line over 6
-  characters, so the Downtown Camera listing has been recording prices under the
-  title "Downtown Toronto" for months. The prices are correct; only the label is wrong.
+### Cleanup ✅ done
+- ~~Delete the orphan `kodak-ektacolor` row.~~ Removed; it had 0 listings and was no
+  longer in `filmSeeds`.
+- ~~Wire up or delete `stores/downtownCamera.ts` and `stores/lordPhoto.ts`.~~ Deleted.
+  Both were never imported, and testing them against the live sites showed why: their
+  Dakis search pages return only category and brand navigation, no product links and
+  no price elements. Unlike Dons Photo, whose storefront renders
+  `.d-product-price-regular` normally. Reviving either needs per-store investigation,
+  not a shared adapter.
+- ~~Fix the pinned-listing title extraction.~~ The pinned scraper took the first
+  rendered line over 6 characters, which recorded the Downtown Camera listing as
+  "Downtown Toronto" — the store's page header — for months. It now reuses the same
+  DOM selectors as the Dakis adapter, since pinned URLs are Dakis product pages.
+- Kerrisdale still truncates and uses a search-page workaround; it is the remaining
+  browser-driven store alongside Dons Photo. `scripts/diagnose-kerrisdale.ts` exists.
 
 ### New store: FilmWarehouse ✅ ready to add
 

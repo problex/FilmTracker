@@ -9,7 +9,7 @@ import type { ListingCandidate, StoreAdapter } from "./types.js";
  * the page also renders `.warranty-price` ("Price: $49.99") for an extended-warranty
  * upsell, which would silently replace the film price on every listing.
  */
-const PRODUCT_EXTRACT_JS = `(() => {
+export const PRODUCT_EXTRACT_JS = `(() => {
   var el = document.querySelector(".d-product-price-regular")
         || document.querySelector(".d-product-price-regular-container");
   var price = el ? (el.textContent || "").trim() : null;
@@ -19,7 +19,7 @@ const PRODUCT_EXTRACT_JS = `(() => {
 })()`;
 
 /** Product pages that failed to render keep the platform's placeholder title. */
-const GENERIC_TITLE_RX = /^(shop product|product|shop)$/i;
+export const GENERIC_TITLE_RX = /^(shop product|product|shop)$/i;
 
 /**
  * "Kodak Gold 200 Film 135-24 exp - Don's Photo" -> "Kodak Gold 200 Film 135-24 exp"
@@ -27,7 +27,7 @@ const GENERIC_TITLE_RX = /^(shop product|product|shop)$/i;
  * Compared with punctuation and spacing removed: the seed name is "Dons Photo" while
  * the page title writes "Don's Photo", so an exact match strips nothing.
  */
-function stripStoreSuffix(title: string, storeName: string) {
+export function stripStoreSuffix(title: string, storeName: string) {
   const squash = (v: string) => v.toLowerCase().replace(/[^a-z0-9]/g, "");
   const target = squash(storeName);
   if (!target) return title.trim();

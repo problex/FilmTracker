@@ -1,5 +1,6 @@
 import { db as dbPromise } from "../db/db.js";
 import { filmSeeds } from "../catalog/films.js";
+import { storeSeeds } from "../catalog/stores.js";
 import { theCameraStoreAdapter } from "../stores/theCameraStore.js";
 import { beauPhotoAdapter } from "../stores/beauPhoto.js";
 import { adenCameraAdapter } from "../stores/adenCamera.js";
@@ -10,7 +11,8 @@ import { filmWarehouseAdapter } from "../stores/filmWarehouse.js";
 import { donsPhotoAdapter } from "../stores/donsPhoto.js";
 import { kerrisdaleAdapter } from "../stores/kerrisdale.js";
 import { pinnedListings } from "../stores/pinnedListings.js";
-import { withPage, extractRenderedText } from "../stores/dakisBrowser.js";
+import { withPage } from "../stores/dakisBrowser.js";
+import { PRODUCT_EXTRACT_JS, GENERIC_TITLE_RX, stripStoreSuffix } from "../stores/dakisShop.js";
 import { isBulkRoll, parseExpiry, parseExposures, parseMoneyToCents, parsePackSize } from "../stores/shared.js";
 import { randomUUID } from "node:crypto";
 
@@ -375,31 +377,28 @@ export async function runScrape() {
         const listing = await withPage(async (page) => {
           await page.goto(p.url, { waitUntil: "domcontentloaded", timeout: 45000 });
           await page.waitForTimeout(3000);
-          const text = await extractRenderedText(page);
 
-          const priceStr =
-            text.match(/Price:\s*\$([0-9][0-9,]*(?:\.[0-9]{2})?)/i)?.[1] ??
-            text.match(/\$([0-9][0-9,]*(?:\.[0-9]{2})?)/)?.[1] ??
-            null;
-          const priceCadCents = priceStr ? parseMoneyToCents(priceStr) : null;
+          // Pinned URLs are Dakis product pages, so read them with the same DOM
+          // selectors as the store adapter. Taking the first long line of rendered
+          // text instead recorded this listing's title as "Downtown Toronto" — the
+          // store's own page header — for months.
+          const raw = await page.evaluate(PRODUCT_EXTRACT_JS);
+          const detail = JSON.parse(typeof raw === "string" ? raw : String(raw)) as {
+            title: string;
+            price: string | null;
+            inStock: boolean;
+          };
 
-          const inStock = (() => {
-            const t = text.toLowerCase();
-            if (t.includes("out of stock") || t.includes("sold out")) return false;
-            if (t.includes("in stock")) return true;
-            return true; // unknown -> assume true
-          })();
+          const priceCadCents = detail.price ? parseMoneyToCents(detail.price) : null;
+          const inStock = detail.inStock;
 
-          const titleLine =
-            text
-              .split("\n")
-              .map((s) => s.trim())
-              .find((l) => l.length > 6) ?? "Film";
-
-          const titleRaw = titleLine;
-          const exposures = parseExposures(titleRaw) ?? parseExposures(text);
-          const packSize = parsePackSize(titleRaw) ?? parsePackSize(text);
-          const bulk = isBulkRoll(titleRaw) || isBulkRoll(text);
+          const storeName = storeSeeds.find((s) => s.id === p.storeId)?.name ?? "";
+          const stripped = stripStoreSuffix(detail.title ?? "", storeName);
+          const titleRaw = !stripped || GENERIC_TITLE_RX.test(stripped) ? "" : stripped;
+          if (!titleRaw) throw new Error("Pinned page did not render a product title");
+          const exposures = parseExposures(titleRaw);
+          const packSize = parsePackSize(titleRaw);
+          const bulk = isBulkRoll(titleRaw);
 
           return {
             titleRaw,
@@ -408,7 +407,7 @@ export async function runScrape() {
             exposures,
             packSize,
             bulk,
-            ...parseExpiry(`${titleRaw} ${text}`),
+            ...parseExpiry(titleRaw),
           };
         });
 
