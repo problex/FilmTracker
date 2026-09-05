@@ -39,4 +39,5 @@ npm run dev
 
 ## Docs
 - Plan: `PLAN.md`
+- Deploying to the NAS: `DEPLOY.md`
 
