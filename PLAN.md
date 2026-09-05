@@ -283,11 +283,55 @@ inference, not just a transport swap.
 **Adding Candido to `filmSeeds` before that work lands would produce zero listings
 at every store.** Sequence it after the Beau Photo adapter work.
 
-## Phase 3 — Cleanup
+## Phase 3 — Cleanup and new stores
 
+### Cleanup
 - Delete the orphan `kodak-ektacolor` row.
 - Wire up or delete `stores/downtownCamera.ts` and `stores/lordPhoto.ts`.
 - Diagnose Kerrisdale (`scripts/diagnose-kerrisdale.ts` already exists).
+- Fix the pinned-listing title extraction: it takes the first rendered line over 6
+  characters, so the Downtown Camera listing has been recording prices under the
+  title "Downtown Toronto" for months. The prices are correct; only the label is wrong.
+
+### New store: FilmWarehouse ✅ ready to add
+
+**`filmwarehouse.ca`** (Great Canadian Film Warehouse) — WooCommerce with the Store
+API exposed, 232 products. **Verified working against the existing
+`createWooStoreApiAdapter` with no code changes**: 17 listings in 8.3s, matching 17
+different films, titles carry the format so `looksLike35mm()` works.
+
+It is also consistently cheap, so expect it to take over a number of lowest-price
+slots — Kentmere Pan 100 $10.31, Kentmere Pan 400 $11.25, Gold 200 $13.87, FP4 Plus
+$14.06, HP5 Plus $14.99 — and it is a **second source for Candido** (400 and 800),
+which currently only Beau Photo carries.
+
+Adding it is a store-seed row plus a three-line adapter:
+
+```ts
+export const filmWarehouseAdapter = createWooStoreApiAdapter({
+  storeId: "film-warehouse",
+  storeName: "FilmWarehouse",
+  baseUrl: "https://filmwarehouse.ca",
+});
+```
+
+### Stores surveyed and rejected
+
+Recorded so they don't get re-investigated. Qualifying test is a Shopify
+`/collections/all/products.json` (or `/products.json`) or a WooCommerce
+`/wp-json/wc/store/v1/products` endpoint.
+
+| Store | Platform | Why not |
+|---|---|---|
+| `lift.ca` | WooCommerce ✓ | Sells **cine** film only — 16mm/8mm, 100ft/400ft cans. Would pollute a 35mm stills catalogue. |
+| `downtowncamera-ca.myshopify.com` | Shopify ✓ | Storefront returns 250 products all titled "110-126-127" with empty types — placeholder data, not a usable catalogue. |
+| `filmbase.ca` | Shopify ✓ | Sells PDLC smart-glass **window** film, not photographic film. |
+| `torontofilmlab.com` | Next.js | `/wp-json/...` returns HTTP 200 but serves the SPA's HTML catch-all, not JSON. Stocks real film; would need a bespoke adapter. |
+| `flicfilm.ca` | WordPress, no Store API | Canadian manufacturer selling direct; worth revisiting if they enable the Store API. |
+| `mcbaincamera.com`, `argentix.ca`, `lozeau.com`, `henrys.com`, `vistek.ca`, `broadwaycamera.com`, `burlingtoncamera.com`, `gosselinphoto.ca`, `camtec.ca`, `photoservice.ca`, `pikto.com`, `rewindphotolab.com`, `simonscameras.com` | neither | No catalogue endpoint; each would need a bespoke adapter. |
+
+Note `downtowncamera.com` (the store already in `storeSeeds`) is Dakis-based like Dons
+Photo and Kerrisdale, so it stays on the browser path if it is ever wired up.
 
 ## Phase 4 — Automated monitoring & maintenance
 
