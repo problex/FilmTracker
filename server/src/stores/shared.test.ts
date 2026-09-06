@@ -104,6 +104,19 @@ describe("matchesFilmAliases", () => {
     expect(matchesFilmAliases("Rosco Diffusion Filter Kit", fusion)).toBe(false);
   });
 
+  it("separates films whose name is a single letter", () => {
+    // Film Washi "F" and "Z" differ by one character, which the matcher skips as
+    // too short, so the ISO has to do the work.
+    expect(matchesFilmAliases('Film Washi "F" 100 | 35mm - 24 Exposures', aliasesFor("washi-f-100"))).toBe(true);
+    expect(matchesFilmAliases('Film Washi "Z" 400 | 35mm - 24 Exposures', aliasesFor("washi-f-100"))).toBe(false);
+    expect(matchesFilmAliases('Film Washi "Z" 400 | 35mm - 24 Exposures', aliasesFor("washi-z-400"))).toBe(true);
+  });
+
+  it("matches a film whose listing drops the brand", () => {
+    // Beau Photo lists Adox Scala without the brand.
+    expect(matchesFilmAliases("Scala 50 Black and White Reversal Film, 35mm", aliasesFor("adox-scala-50"))).toBe(true);
+  });
+
   it("does not match camera accessories that share a brand word", () => {
     // The Camera Store sells "Aurora" umbrellas and reflectors.
     expect(matchesFilmAliases('Aurora 42" White Umbrella', aliasesFor("flic-aurora-400"))).toBe(false);
