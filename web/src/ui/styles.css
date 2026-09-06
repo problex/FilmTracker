@@ -486,13 +486,18 @@ th {
     display: block;
   }
 
+  /* Each film is a card. A hairline divider is not enough separation once every
+     row is tall enough to fill much of the screen. */
   .table tbody tr.clickRow {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
     gap: 4px 10px;
-    padding: 12px 2px;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.03);
   }
 
   .table tbody tr.clickRow td {
@@ -501,29 +506,41 @@ th {
     border-bottom: none;
   }
 
-  /* Film name and type share the first line; offers get the full width below. */
+  /* Film name and type share the first line; offers get the full width below,
+     with a divider so the card reads as heading + prices. */
   .table tbody tr.clickRow td:nth-child(2) {
     justify-self: end;
   }
 
   .table tbody tr.clickRow td:nth-child(3) {
     grid-column: 1 / -1;
-    margin-top: 8px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
   }
 
-  /* The whole row is the tap target, so highlight the card rather than cells. */
+  /* The whole card is the tap target, so highlight the card rather than cells. */
   .clickRowSelected td {
     background: transparent;
   }
 
   .table tbody tr.clickRow.clickRowSelected {
     background: rgba(96, 165, 250, 0.1);
-    border-radius: 10px;
+    border-color: rgba(96, 165, 250, 0.55);
+    /* Square off the bottom so the expanded detail reads as part of this card. */
+    margin-bottom: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   .filmDetailRow {
     display: block;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+    border: 1px solid rgba(96, 165, 250, 0.55);
+    border-top: none;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    background: rgba(96, 165, 250, 0.1);
   }
 
   .filmDetailRow td {
@@ -532,12 +549,14 @@ th {
 
   .filmDetailCell {
     display: block;
-    padding: 0 0 12px !important;
+    padding: 0 10px 12px !important;
+    background: transparent;
   }
 
   /* Offers are already single-column below 900px; tighten them for a phone. */
   .offer {
     padding: 8px 10px;
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
   .offers {
