@@ -458,6 +458,93 @@ th {
   }
 }
 
+/* ---------------------------------------------------------------------------
+   Mobile: stack each film instead of scrolling sideways.
+
+   The table is laid out for three columns at 600px minimum, which on a phone
+   means the offers sit off-screen to the right. Below 640px each row becomes a
+   card: film name and type share the first line, and the offers span the full
+   width underneath. Done in CSS so the accordion, keyboard handling and detail
+   row keep working unchanged.
+   --------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .tableWrap {
+    overflow-x: visible;
+  }
+
+  .table {
+    min-width: 0;
+    display: block;
+  }
+
+  /* Column headers describe a layout that no longer exists once stacked. */
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: block;
+  }
+
+  .table tbody tr.clickRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 4px 10px;
+    padding: 12px 2px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .table tbody tr.clickRow td {
+    display: block;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  /* Film name and type share the first line; offers get the full width below. */
+  .table tbody tr.clickRow td:nth-child(2) {
+    justify-self: end;
+  }
+
+  .table tbody tr.clickRow td:nth-child(3) {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+  }
+
+  /* The whole row is the tap target, so highlight the card rather than cells. */
+  .clickRowSelected td {
+    background: transparent;
+  }
+
+  .table tbody tr.clickRow.clickRowSelected {
+    background: rgba(96, 165, 250, 0.1);
+    border-radius: 10px;
+  }
+
+  .filmDetailRow {
+    display: block;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .filmDetailRow td {
+    border-bottom: none;
+  }
+
+  .filmDetailCell {
+    display: block;
+    padding: 0 0 12px !important;
+  }
+
+  /* Offers are already single-column below 900px; tighten them for a phone. */
+  .offer {
+    padding: 8px 10px;
+  }
+
+  .offers {
+    gap: 8px;
+  }
+}
+
 @media (max-width: 380px) {
   .page {
     padding-left: max(12px, env(safe-area-inset-left));
