@@ -185,3 +185,21 @@ describe("Beau Photo adapter", () => {
     expect(new Set(urls).size).toBe(urls.length);
   });
 });
+
+describe("stripStoreSuffix", () => {
+  it("removes the store name a Dakis page title appends", async () => {
+    const { stripStoreSuffix } = await import("./dakisShop.js");
+    // Punctuation differs from the seed name.
+    expect(stripStoreSuffix("Kodak Gold 200 Film 135-24 exp - Don's Photo", "Dons Photo")).toBe(
+      "Kodak Gold 200 Film 135-24 exp"
+    );
+    // The page may add a legal suffix the seed name does not carry.
+    expect(
+      stripStoreSuffix("Kentmere 400 ISO 135 B&W 36 exp. - DOWNTOWN CAMERA LIMITED", "DowntownCamera")
+    ).toBe("Kentmere 400 ISO 135 B&W 36 exp.");
+    // An unrelated trailing segment is left alone.
+    expect(stripStoreSuffix("Ilford HP5 Plus - 35mm, 36 exp.", "Dons Photo")).toBe(
+      "Ilford HP5 Plus - 35mm, 36 exp."
+    );
+  });
+});

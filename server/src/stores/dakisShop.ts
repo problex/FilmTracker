@@ -35,7 +35,10 @@ export function stripStoreSuffix(title: string, storeName: string) {
   const idx = Math.max(title.lastIndexOf(" - "), title.lastIndexOf(" | "), title.lastIndexOf(" – "));
   if (idx <= 0) return title.trim();
 
-  return squash(title.slice(idx + 3)) === target ? title.slice(0, idx).trim() : title.trim();
+  // startsWith, not equality: the page title may carry a legal suffix the store seed
+  // does not ("DowntownCamera" vs "DOWNTOWN CAMERA LIMITED").
+  const tail = squash(title.slice(idx + 3));
+  return tail.startsWith(target) ? title.slice(0, idx).trim() : title.trim();
 }
 
 /**
