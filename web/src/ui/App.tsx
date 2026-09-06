@@ -65,6 +65,7 @@ type FilmWithTopOffers = {
   iso: number | null;
   type: "color" | "bw";
   process: string | null;
+  tier: "core" | "extended";
   offers: Offer[];
 };
 
@@ -130,6 +131,7 @@ export function App() {
   const [packDeals, setPackDeals] = useState<MultipackDeal[] | null>(null);
   const [packDismissed, setPackDismissed] = useState(false);
   const [query, setQuery] = useState("");
+  const [showAll, setShowAll] = useState(false);
 
   async function loadPrices() {
     setError(null);
@@ -223,10 +225,16 @@ export function App() {
   }, [selectedFilmId, variant, hideOutOfStock]);
 
   const allRows = useMemo(() => films ?? [], [films]);
-  const rows = useMemo(
-    () => (query.trim() ? allRows.filter((f) => matchesQuery(f, query)) : allRows),
-    [allRows, query]
+  const extendedCount = useMemo(
+    () => allRows.filter((f) => f.tier === "extended").length,
+    [allRows]
   );
+  const rows = useMemo(() => {
+    // Search deliberately ignores the tier: looking something up should find it
+    // whether or not it is in the curated set.
+    if (query.trim()) return allRows.filter((f) => matchesQuery(f, query));
+    return showAll ? allRows : allRows.filter((f) => f.tier !== "extended");
+  }, [allRows, query, showAll]);
   const selectedFilm = useMemo(
     () => (selectedFilmId ? allRows.find((f) => f.filmId === selectedFilmId) ?? null : null),
     [allRows, selectedFilmId]
@@ -267,6 +275,17 @@ export function App() {
               </button>
             )}
           </div>
+          {extendedCount > 0 && (
+            <select
+              className="select"
+              value={showAll ? "all" : "core"}
+              onChange={(e) => setShowAll(e.target.value === "all")}
+              aria-label="Which films to show"
+            >
+              <option value="core">Popular films</option>
+              <option value="all">All films ({allRows.length})</option>
+            </select>
+          )}
           <label className="toggle" title="Hide out of stock offers">
             <input
               type="checkbox"

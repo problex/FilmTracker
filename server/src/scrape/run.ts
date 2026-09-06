@@ -1,5 +1,5 @@
 import { db as dbPromise } from "../db/db.js";
-import { filmSeeds } from "../catalog/films.js";
+import { filmSeeds, filmTier } from "../catalog/films.js";
 import { storeSeeds } from "../catalog/stores.js";
 import { theCameraStoreAdapter } from "../stores/theCameraStore.js";
 import { beauPhotoAdapter } from "../stores/beauPhoto.js";
@@ -24,16 +24,17 @@ async function ensureFilmsSeeded() {
   for (const f of filmSeeds) {
     await db.query(
       `
-      INSERT INTO films (id, brand, name, iso, type, process)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO films (id, brand, name, iso, type, process, tier)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
       ON CONFLICT (id) DO UPDATE SET
         brand = EXCLUDED.brand,
         name = EXCLUDED.name,
         iso = EXCLUDED.iso,
         type = EXCLUDED.type,
-        process = EXCLUDED.process
+        process = EXCLUDED.process,
+        tier = EXCLUDED.tier
       `,
-      [f.id, f.brand, f.name, f.iso, f.type, f.process]
+      [f.id, f.brand, f.name, f.iso, f.type, f.process, filmTier(f)]
     );
 
     for (const a of f.aliases) {
@@ -333,7 +334,14 @@ export async function runScrape() {
         });
       }
     } else {
-      for (const film of filmSeeds) {
+      // Browser-driven stores load a page per film at ~12s each, so they cover the
+      // core catalogue only. Extended films are still tracked by the seven bulk
+      // stores, where an extra film costs nothing.
+      const filmsForStore = isBrowserStore
+        ? filmSeeds.filter((f) => filmTier(f) === "core")
+        : filmSeeds;
+
+      for (const film of filmsForStore) {
         if (Date.now() - storeStart > STORE_BUDGET_MS) {
           truncated = true;
           errors.push({ filmId: film.id, message: "Store scrape budget exceeded; partial results" });

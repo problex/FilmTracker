@@ -16,6 +16,8 @@ export type FilmWithTopOffersDto = {
   iso: number | null;
   type: "color" | "bw";
   process: string | null;
+  /** `core` is the curated default view; `extended` is shown on request. */
+  tier: "core" | "extended";
   offers: OfferDto[];
 };
 

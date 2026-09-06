@@ -21,7 +21,22 @@ export type FilmSeed = {
    * ever sold as a fixed bundle, where no title says "3 pack".
    */
   defaultPackSize?: number;
+  /**
+   * `core` (the default) is the curated set the site shows first and every store
+   * scrapes. `extended` is everything else: still tracked, but shown only when the
+   * reader asks for it, and skipped by the browser-driven stores, which load a page
+   * per film at roughly 12 seconds each and would otherwise take hours.
+   *
+   * Films found by `npm run discover` should be added as `extended` unless they are
+   * genuinely common.
+   */
+  tier?: "core" | "extended";
 };
+
+/** Films default to `core`, matching the catalogue before tiers existed. */
+export function filmTier(f: Pick<FilmSeed, "tier">): "core" | "extended" {
+  return f.tier ?? "core";
+}
 
 export const filmSeeds: FilmSeed[] = [
   {

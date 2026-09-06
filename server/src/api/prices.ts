@@ -36,8 +36,9 @@ pricesRouter.get("/", async (req, res) => {
     iso: number | null;
     type: "color" | "bw";
     process: string | null;
+    tier: string;
   }>(
-    `SELECT id, brand, name, iso, type, process
+    `SELECT id, brand, name, iso, type, process, tier
      FROM films
      WHERE enabled = TRUE
      ORDER BY brand, name, iso NULLS LAST`
@@ -119,6 +120,7 @@ pricesRouter.get("/", async (req, res) => {
       iso: f.iso,
       type: f.type,
       process: f.process,
+      tier: f.tier === "extended" ? "extended" : "core",
       offers: offersResult.rows.map((o) => ({
         storeId: o.store_id,
         storeName: o.store_name,

@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE films ADD COLUMN tier TEXT NOT NULL DEFAULT 'core';
+
+CREATE INDEX IF NOT EXISTS films_tier_idx ON films (tier);
+
+COMMIT;

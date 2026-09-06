@@ -78,13 +78,13 @@ storesHealthRouter.get("/health", async (_req, res) => {
      ORDER BY s.id`
   );
 
-  const filmRows = await db.query<{ film_id: string; fresh: number }>(
-    `SELECT f.id AS film_id,
+  const filmRows = await db.query<{ film_id: string; tier: string; fresh: number }>(
+    `SELECT f.id AS film_id, f.tier,
             COUNT(l.id) FILTER (WHERE l.last_seen_at >= ${freshSinceSql}) AS fresh
      FROM films f
      LEFT JOIN listings l ON l.film_id = f.id
      WHERE f.enabled = TRUE
-     GROUP BY f.id`
+     GROUP BY f.id, f.tier`
   );
 
   const latestTotals = latest ? parseTotals(latest.totals) : {};
@@ -156,8 +156,10 @@ storesHealthRouter.get("/health", async (_req, res) => {
     });
   }
 
+  // Extended films come and go from stock constantly; warning on each one would
+  // make the report unreadable, so only the core set is held to this.
   const filmsWithoutOffers = filmRows.rows
-    .filter((f) => Number(f.fresh) === 0)
+    .filter((f) => Number(f.fresh) === 0 && f.tier !== "extended")
     .map((f) => f.film_id)
     .sort();
 
