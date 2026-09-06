@@ -41,6 +41,13 @@ describe("matchesFilmAliases", () => {
     expect(matchesFilmAliases(title, aliasesFor("kentmere-pan-400"))).toBe(true);
   });
 
+  it("ignores a roll length whose unit is still HTML-encoded", () => {
+    // Shopify hands back "100&#8242;" for 100′, which left a bare 100 in the title.
+    const t = "Flic Film Ultrapan 400 35mm 100&#8242; Bulk Roll";
+    expect(matchesFilmAliases(t, aliasesFor("flic-ultrapan-100"))).toBe(false);
+    expect(matchesFilmAliases(t, aliasesFor("flic-ultrapan-400"))).toBe(true);
+  });
+
   it("keeps Kentmere PAN 100/200/400 apart", () => {
     // PAN 100 and 200 were both being priced as PAN 400 at four stores.
     expect(matchesFilmAliases("Kentmere Pan 100, 35mm, 36exp.", aliasesFor("kentmere-pan-400"))).toBe(false);

@@ -98,6 +98,9 @@ function stripPackagingNumbers(s: string) {
   return s
     .replace(/\b\d+\s*(?:ft|feet|foot)\b/g, " ") // 100ft / 100 feet
     .replace(/\b\d+\s*['’′]/g, " ") //             100' / 100’ / 100′
+    // Shopify returns some titles with the prime still HTML-encoded, e.g.
+    // "Ultrapan 400 35mm 100&#8242; Bulk Roll", which otherwise leaves a bare 100.
+    .replace(/\b\d+\s*&#\d+;/g, " ")
     .replace(/\b\d+\s*m(?:et(?:er|re)s?)?\b/g, " ") // 30m
     .replace(/\b\d+\s*exp(?:osures?)?\b/g, " ") //  36exp / 24 exposures
     .replace(/\b135\s*[-–]\s*\d+/g, " ") //         135-36
