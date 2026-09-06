@@ -146,8 +146,8 @@ Also outstanding:
 - ✅ **Orphan film row** `kodak-ektacolor` — deleted (Phase 3).
 - ✅ **`process: "e6"`** unused — Ektachrome E100, Velvia 100, Velvia 50 and Provia
   100F now use it.
-- ⬜ **No tests anywhere** in the repo (no test runner, no fixtures) — still true, and
-  the largest remaining gap. See *Phase 4b*.
+- ✅ **No tests anywhere** in the repo — vitest plus 32 tests now cover the parsing and
+  matching bugs below and the three bulk adapters (*Phase 4b*).
 
 Found later, while doing the work:
 - ✅ **Alias matching mis-assigned whole films.** Kentmere PAN 100/200 were priced as
@@ -182,9 +182,10 @@ removes the truncation entirely.
 - **Browser stores** (`dons-photo`, `kerrisdale`) stay per-film; they are inherently
   slow and need separate treatment.
 
-### Phase 0 follow-up — Beau Photo *(not done)*
+### Phase 0 follow-up — Beau Photo ✅ done
 
-Beau Photo needs more than a transport swap, so it was left on the per-film path:
+Beau Photo needed more than a transport swap. Now on the Store API with tag and
+variation format detection, taking it from 3 listings to 42. What made it awkward:
 
 - Its Store API works and exposes 2,317 products (24 pages at `per_page=100`).
 - But its titles omit the format entirely — `"Candido 400 Colour Film"`,
@@ -193,8 +194,9 @@ Beau Photo needs more than a transport swap, so it was left on the per-film path
 - Categories (`Colour Film and Paper`, `Black & White Film and Paper`) identify
   *film* but not *format*, and include paper; the store also sells 120.
 
-So this needs format inference (category + title + possibly the product page)
-rather than the title regex. Blocks Candido — see Phase 2.
+Resolved by reading the "35mm" tag and each variation's `Film Format` slug, and by
+fetching variations individually because the parent carries only a price range. This
+also unblocked Candido.
 - **Make truncation loud**: persist each run to `scrape_runs` (this is Milestone 4's
   "scrape run logs") and record budget-exceeded as a `partial` status rather than
   letting it pass unnoticed.
@@ -279,7 +281,7 @@ Harman RED 125, Kodak Pro Image 100, Kodacolor 100 / 200, Fomapan 100 / 200 / 40
 Lomography CN 400 / CN 800 / Metropolis, CineStill BwXX, and Flic Film
 (Canadian — Aurora 400, Elektra 100, Cine Colour 250D / 500T).
 
-### Candido — ⚠️ blocked on Beau Photo
+### Candido ✅ added (Phase 2)
 
 **Candido 200 / 400 / 800** (Candido Collective, UK). All three are C-41 colour
 negative respools of Kodak Vision3 with the remjet removed — the same idea as
@@ -307,8 +309,8 @@ Its categories (`Colour Film and Paper` / `Black & White Film and Paper`) confir
 *film* but not *format*, and it sells 120 as well — so this needs real format
 inference, not just a transport swap.
 
-**Adding Candido to `filmSeeds` before that work lands would produce zero listings
-at every store.** Sequence it after the Beau Photo adapter work.
+Added once the Beau Photo adapter landed, and FilmWarehouse turned out to stock 400
+and 800 as well, so it now has two sources.
 
 ## Phase 3 — Cleanup and new stores
 
@@ -454,10 +456,11 @@ breakage before trusting it unattended.
    - Beau Photo adapter (WooCommerce variation parsing)
 3. **Add remaining 8 stores**
    - One store at a time, with fixtures/tests per store
-   - ⚠️ Fixtures/tests were never written — see *Phase 4b*
+   - ✅ Fixtures and tests now exist — see *Phase 4b*
 4. **Reliability**
    - scrape run logs, store health, better matching diagnostics
-   - ⚠️ Not started; `scrape_runs` is still unwritten — see *Phase 0* and *Phase 4a*
+   - ✅ `scrape_runs` is written on every run, and `GET /api/stores/health` reports on
+     it — see *Phase 0* and *Phase 4a*
 5. **History + deployment + UX** ✅
    - **Price history chart** in film detail (`GET /api/films/:id/price-history` + `web/src/ui/PriceHistoryChart.tsx`)
    - **Inline film detail** in the main table (accordion row under the selected film; no separate detail block above the list)
