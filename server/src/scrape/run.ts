@@ -176,6 +176,29 @@ function resolvePackSize(candidate: { packSize: number | null }, filmId: string)
   return filmSeeds.find((f) => f.id === filmId)?.defaultPackSize ?? null;
 }
 
+/** Read a positive integer from the environment, else the default. */
+function envMs(name: string, fallback: number) {
+  const raw = Number(process.env[name]);
+  return Number.isFinite(raw) && raw > 0 ? raw : fallback;
+}
+
+/**
+ * Per-store time budgets.
+ *
+ * Bulk stores fetch one catalogue and are done in seconds, so their budget is a
+ * safety net. Browser-driven stores pay ~15-20s per film because each one is a page
+ * load in Chromium, so covering 51 films needs roughly 17 minutes — the old 3-minute
+ * budget got through 8 to 10 of them and silently dropped the rest.
+ *
+ * Overridable so the budget can be tuned as the catalogue grows without a redeploy.
+ */
+const BUDGETS = {
+  perFilm: () => envMs("SCRAPE_BUDGET_STORE_MS", 90_000),
+  browser: () => envMs("SCRAPE_BUDGET_BROWSER_MS", 1_500_000),
+  catalogue: () => envMs("SCRAPE_CATALOG_TIMEOUT_MS", 180_000),
+  pinned: () => envMs("SCRAPE_BUDGET_PINNED_MS", 120_000),
+};
+
 type StoreResult = {
   storeId: string;
   inserted: number;
@@ -267,13 +290,13 @@ export async function runScrape() {
     const errors: { filmId: string; message: string }[] = [];
     const storeStart = Date.now();
     const isBrowserStore = ["dons-photo", "kerrisdale", "lord-photo", "downtown-camera"].includes(adapter.storeId);
-    const STORE_BUDGET_MS = isBrowserStore ? 180_000 : 90_000;
+    const STORE_BUDGET_MS = isBrowserStore ? BUDGETS.browser() : BUDGETS.perFilm();
     const FILM_TIMEOUT_MS = isBrowserStore ? 45_000 : 25_000;
     // One catalogue fetch covers every film, so this scales with catalogue size,
     // not with how many films we track. Bounded work (a fixed page count plus a
     // variation lookup per match), so it gets a generous ceiling — Beau Photo's
     // 2,300-product catalogue alone takes ~55s.
-    const CATALOG_TIMEOUT_MS = 180_000;
+    const CATALOG_TIMEOUT_MS = BUDGETS.catalogue();
     const useBulk = typeof adapter.fetchCandidatesForAllFilms === "function";
 
     if (useBulk) {
@@ -361,7 +384,7 @@ export async function runScrape() {
   // Pinned URL scrapes (exact product pages)
   if (pinnedListings.length > 0) {
     const storeStart = Date.now();
-    const STORE_BUDGET_MS = 120_000;
+    const STORE_BUDGET_MS = BUDGETS.pinned();
     const errors: { filmId: string; message: string }[] = [];
     let inserted = 0;
     let truncated = false;
