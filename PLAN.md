@@ -421,16 +421,28 @@ First run suggests the catalogue could roughly double: Adox, AgfaPhoto APX, Ferr
 P30/P33, Film Washi, Flic Film Vision3 respools and Cine Colour, Reflx Lab, Revolog,
 Rollei RPX/Retro/Superpan, Shanghai GP3, Ultrafine Xtreme.
 
-### 4d. Scheduled repair agent — out-of-app, PR only
-A scheduled Claude Code agent (cloud routine) that reads the 4a health report,
-reproduces the failure, patches the adapter, runs the 4b tests, and **opens a PR**.
-Never auto-merge, and never let the running server rewrite its own adapters.
+### 4d. Scheduled repair agent — out-of-app, PR only ⚠️ built, untested end to end
 
-This fits the existing deploy path: merge → NAS `git pull` → `docker compose up -d --build`
-(see `DEPLOY.md`).
+`scripts/repair-agent.sh` runs `scripts/health-check.sh`, and when it reports an
+**error** (warnings alone are ignored) asks Claude Code to investigate on a fresh
+branch and open a PR. It never merges, deploys, scrapes, or touches the database.
 
-**Order matters**: 4a and 4b must exist before 4d, or the agent has no signal for
-whether a patch fixed or broke anything.
+**Authentication.** It deliberately does not pass `--bare`. Bare mode ignores the
+subscription login and requires an `ANTHROPIC_API_KEY`; without it, `claude -p` uses
+the Claude Code login on the machine, so a Pro/Max subscription is enough. That means
+it must run somewhere you have logged in — your own machine, not the NAS. The docs
+note `--bare` will become the default for `-p` in a future release, which would break
+this; an authentication failure is the symptom to look for.
+
+The prompt carries the constraints this project learned the hard way: reproduce before
+changing, because adapters fail silently; ship a regression test using the real
+listing title; never widen an alias to force a match; and open no PR at all rather
+than guess, because a wrong fix is worse than an open issue.
+
+**What is verified:** the no-op path — a healthy system exits 0, creates no branch,
+starts no agent. **What is not:** the repair path itself has never been exercised,
+because doing so needs a genuine failure. Run it with `--force` against a real
+breakage before trusting it unattended.
 
 ---
 
