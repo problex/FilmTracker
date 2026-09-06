@@ -693,3 +693,81 @@ th {
   color: #34d399;
   border-color: rgba(52, 211, 153, 0.4);
 }
+
+/* Search ------------------------------------------------------------------ */
+.searchWrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.search {
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  border-radius: 10px;
+  /* Room for the clear button. */
+  padding: 10px 34px 10px 12px;
+  min-height: 44px;
+  /* 16px keeps iOS from zooming the page on focus. */
+  font-size: 16px;
+  width: 220px;
+  max-width: 100%;
+}
+
+.search::placeholder {
+  color: var(--muted);
+}
+
+.search:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* The type="search" clear affordance is inconsistent across browsers; use our own. */
+.search::-webkit-search-cancel-button {
+  display: none;
+}
+
+.searchClear {
+  position: absolute;
+  right: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+.searchClear:hover {
+  color: var(--text);
+}
+
+.emptyState {
+  margin-bottom: 16px;
+  color: var(--muted);
+}
+
+.linkBtn {
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .searchWrap {
+    width: 100%;
+  }
+
+  .search {
+    width: 100%;
+  }
+}

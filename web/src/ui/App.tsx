@@ -79,6 +79,28 @@ function formatCad(cents: number) {
   );
 }
 
+/**
+ * Squash to letters and digits so punctuation and spacing don't matter: "tmax",
+ * "t-max" and "T MAX" all find "Kodak T-MAX 100".
+ */
+function squash(v: string) {
+  return v.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function searchHaystack(f: FilmWithTopOffers) {
+  return squash(
+    [f.brand, f.name, f.iso ?? "", f.process ?? "", f.type === "bw" ? "black white bw" : "colour color"].join(" ")
+  );
+}
+
+/** Every token must match, so "kodak 400" narrows rather than widening. */
+function matchesQuery(f: FilmWithTopOffers, query: string) {
+  const tokens = query.split(/\s+/).map(squash).filter(Boolean);
+  if (tokens.length === 0) return true;
+  const hay = searchHaystack(f);
+  return tokens.every((t) => hay.includes(t));
+}
+
 function variantBadges(o: Offer) {
   const badges: string[] = [];
   if (o.isBulk) badges.push("Bulk");
@@ -107,6 +129,7 @@ export function App() {
   const [dealsDismissed, setDealsDismissed] = useState(false);
   const [packDeals, setPackDeals] = useState<MultipackDeal[] | null>(null);
   const [packDismissed, setPackDismissed] = useState(false);
+  const [query, setQuery] = useState("");
 
   async function loadPrices() {
     setError(null);
@@ -199,10 +222,14 @@ export function App() {
     };
   }, [selectedFilmId, variant, hideOutOfStock]);
 
-  const rows = useMemo(() => films ?? [], [films]);
+  const allRows = useMemo(() => films ?? [], [films]);
+  const rows = useMemo(
+    () => (query.trim() ? allRows.filter((f) => matchesQuery(f, query)) : allRows),
+    [allRows, query]
+  );
   const selectedFilm = useMemo(
-    () => (selectedFilmId ? rows.find((f) => f.filmId === selectedFilmId) ?? null : null),
-    [rows, selectedFilmId]
+    () => (selectedFilmId ? allRows.find((f) => f.filmId === selectedFilmId) ?? null : null),
+    [allRows, selectedFilmId]
   );
   const visibleSelectedFilmOffers = useMemo(() => {
     const offers = selectedFilmOffers ?? [];
@@ -219,6 +246,27 @@ export function App() {
           <div className="subtitle">Lowest 3 in-stock prices (Canadian stores, 35mm)</div>
         </div>
         <div className="headerActions">
+          <div className="searchWrap">
+            <input
+              className="search"
+              type="search"
+              inputMode="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search film, brand or ISO"
+              aria-label="Search films"
+            />
+            {query && (
+              <button
+                type="button"
+                className="searchClear"
+                onClick={() => setQuery("")}
+                aria-label="Clear search"
+              >
+                ×
+              </button>
+            )}
+          </div>
           <label className="toggle" title="Hide out of stock offers">
             <input
               type="checkbox"
@@ -337,7 +385,16 @@ export function App() {
       {error && <div className="card error">Error: {error}</div>}
       {!error && films === null && <div className="card">Loading…</div>}
 
-      {films && (
+      {films && rows.length === 0 && query.trim() && (
+        <div className="card emptyState">
+          No films match “{query.trim()}”.{" "}
+          <button type="button" className="linkBtn" onClick={() => setQuery("")}>
+            Clear search
+          </button>
+        </div>
+      )}
+
+      {films && rows.length > 0 && (
         <div className="card cardTable">
           <div className="tableWrap" role="region" aria-label="Film prices table">
             <table className="table">
