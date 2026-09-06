@@ -498,6 +498,20 @@ export const filmSeeds: FilmSeed[] = [
   },
 
   {
+    id: "flic-fusion-200",
+    brand: "Flic Film",
+    name: "Fusion 200",
+    iso: 200,
+    type: "color",
+    process: "c41",
+    // Graination lists it as bare "Fusion 200", so the brand cannot be required.
+    // "fusion" is safe despite the many "Diffusion" products these stores sell:
+    // word tokens match on a boundary, and "fusion" does not start one inside
+    // "diffusion". The ISO is pinned regardless.
+    aliases: ["fusion 200", "flic film fusion 200"],
+  },
+
+  {
     id: "lomography-analog-trio",
     brand: "Lomography",
     // A bundle of three different LomoChrome stocks, not three rolls of one film, so

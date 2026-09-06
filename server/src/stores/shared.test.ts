@@ -94,6 +94,16 @@ describe("matchesFilmAliases", () => {
     }
   });
 
+  it("does not match a film name hiding inside another word", () => {
+    // These stores sell many "Diffusion" products, and "fusion" sits inside it.
+    const fusion = aliasesFor("flic-fusion-200");
+    expect(matchesFilmAliases("Fusion 200", fusion)).toBe(true);
+    expect(matchesFilmAliases("Flic Film - Fusion 200 36ex C41", fusion)).toBe(true);
+    expect(matchesFilmAliases("LEE Filters – White Diffusion #216", fusion)).toBe(false);
+    expect(matchesFilmAliases("Photoflex Umbrella Diffusion Cover 45\u201d", fusion)).toBe(false);
+    expect(matchesFilmAliases("Rosco Diffusion Filter Kit", fusion)).toBe(false);
+  });
+
   it("does not match camera accessories that share a brand word", () => {
     // The Camera Store sells "Aurora" umbrellas and reflectors.
     expect(matchesFilmAliases('Aurora 42" White Umbrella', aliasesFor("flic-aurora-400"))).toBe(false);
