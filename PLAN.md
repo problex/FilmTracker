@@ -66,7 +66,7 @@ Monorepo with:
   - `is_expired` + `expiry_label` (migration 003)
 - `price_snapshots`: time series of price + stock
 - `scrape_runs`: bookkeeping for each run + per-store status (written on every run)
-- `film_candidates`: proposed catalog entries awaiting approval (planned, *Phase 4c*)
+- `discovered_titles`: unrecognised 35mm titles awaiting triage (*Phase 4c*)
 
 ## API (v1)
 - `GET /api/health`
@@ -74,7 +74,10 @@ Monorepo with:
 - `GET /api/prices?inStock=true|false&variant=any|36|24|multipack|bulk&filmType=any|color|bw` → per film: top 3 offers
 - `GET /api/films/:id/offers` → all current offers for one film (detail view)
 - `GET /api/films/:id/price-history?inStock=true|false&variant=…` → **daily lowest in-stock price** (UTC buckets) for the **last 6 months**, matching the same variant / in-stock filters as `/api/prices` (Postgres + SQLite)
-- `GET /api/stores/health` (admin-ish, optional — not implemented yet; see *Phase 4a*)
+- `GET /api/stores/health` → scrape health: per-store counts vs. the previous run,
+  truncation, stale stores, films with no offers
+- `GET /api/admin/discovered-titles?status=new|added|ignored|all` and
+  `POST /api/admin/discovered-titles/:id` → triage queue for undiscovered film
 - `POST /api/admin/scrape` → runs scrape for implemented stores (no public UI button; server/CLI only)
 - `GET /api/deals/expired?minDiscount=` → in-stock expired/short-dated stock vs. the
   cheapest fresh offer of the same film, pack size, bulk flag and exposure count
@@ -389,22 +392,34 @@ The suite was mutation-checked: reintroducing the old substring matcher fails ex
 6 tests, on the bugs they encode. A suite that cannot fail is worth nothing, so this
 check is worth repeating whenever tests are added.
 
-### 4c. Claude-assisted film discovery — in-app, propose only
-Phase 0 makes this nearly free: the bulk catalogs already contain every product each
-store sells. Diff them against `filmSeeds` to get unrecognised 35mm products, then use
-Claude to turn messy titles (e.g. `"Flic Film - Kodak Vision3 250D | 35mm - 36 Exposures"`)
-into structured `FilmSeed` records (brand, name, iso, type, process, aliases).
+### 4c. Film discovery — deterministic, no LLM ✅ done
 
-- Single-call classification/extraction — use the official SDK (`@anthropic-ai/sdk`)
-  with **structured outputs** (`output_config.format` via `client.messages.parse()`)
-  so results are schema-valid rather than parsed prose.
-- Model: `claude-opus-5`. Tune `output_config.effort` down before considering a
-  cheaper model if volume ever grows.
-- **Write to a `film_candidates` table for human approval — never auto-merge.**
-  Aliases *are* the matching key; one sloppy alias silently absorbs unrelated listings
-  into the wrong film and only shows up weeks later as bad prices.
-- Cost is negligible: only unrecognised titles are sent, so steady state is a handful
-  of new products per day.
+Reports 35mm film the stores sell that the catalogue doesn't track. `npm run discover`
+(add `--save` to record findings), plus `GET /api/admin/discovered-titles` and a POST
+to mark a title `added` or `ignored`.
+
+Costs nothing to run: Phase 0's bulk adapters already download each store's whole
+catalogue, so unrecognised products are a set difference rather than a crawl.
+
+**Originally specified as an LLM step; built without one.** The model's only job would
+have been turning a title into a `FilmSeed`, which for a handful of titles is a few
+minutes of judgement — and given how much trouble aliases caused, human judgement is
+the better input. The Anthropic API also needs its own paid account, separate from a
+Claude Pro subscription. The deterministic diff is the valuable half.
+
+It reports raw titles and stops there. Writing the alias is deliberately a code change
+to `catalog/films.ts`, reviewed like any other: a film in the database but not in the
+seed list would vanish on the next deploy.
+
+**A discovery-only noise filter was needed.** `looksLike35mm()` cannot tell a film
+format from a lens focal length — fine for the adapters, since a product must also
+match a film alias, but discovery has no such filter and stores sell far more 35mm
+lenses than 35mm film. Unfiltered the report was 349 rows, mostly lenses, developing
+services and film holders; filtered it is 173 rows of actual film.
+
+First run suggests the catalogue could roughly double: Adox, AgfaPhoto APX, Ferrania
+P30/P33, Film Washi, Flic Film Vision3 respools and Cine Colour, Reflx Lab, Revolog,
+Rollei RPX/Retro/Superpan, Shanghai GP3, Ultrafine Xtreme.
 
 ### 4d. Scheduled repair agent — out-of-app, PR only
 A scheduled Claude Code agent (cloud routine) that reads the 4a health report,

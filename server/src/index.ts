@@ -6,6 +6,7 @@ import { pricesRouter } from "./api/prices.js";
 import { adminRouter } from "./api/admin.js";
 import { dealsRouter } from "./api/deals.js";
 import { storesHealthRouter } from "./api/storesHealth.js";
+import { discoveredTitlesRouter } from "./api/discoveredTitles.js";
 import { startScrapeScheduler } from "./scrape/schedule.js";
 import { buildCorsOptions } from "./corsOrigins.js";
 
@@ -23,6 +24,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/films", filmsRouter);
 app.use("/api/prices", pricesRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/admin", discoveredTitlesRouter);
 app.use("/api/deals", dealsRouter);
 app.use("/api/stores", storesHealthRouter);
 

@@ -11,7 +11,8 @@
     "db:demo": "tsx src/scripts/demo-data.ts",
     "scrape": "tsx src/scripts/scrape.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "discover": "tsx src/scripts/discover.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
