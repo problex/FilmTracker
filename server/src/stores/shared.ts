@@ -96,7 +96,7 @@ export function parseMoneyToCents(value: string) {
  */
 function stripPackagingNumbers(s: string) {
   return s
-    .replace(/\b\d+\s*(?:ft|feet|foot)\b/g, " ") // 100ft / 100 feet
+    .replace(/\b\d+\s*(?:ft|feet|foot|pieds?)\b/g, " ") // 100ft / 100 feet / 100 pieds
     .replace(/\b\d+\s*['’′]/g, " ") //             100' / 100’ / 100′
     // Shopify returns some titles with the prime still HTML-encoded, e.g.
     // "Ultrapan 400 35mm 100&#8242; Bulk Roll", which otherwise leaves a bare 100.
@@ -169,6 +169,13 @@ export function parsePackSize(title: string) {
     if (n >= 2 && n <= 12) return n;
   }
 
+  // French word order puts the count after the noun: "Pack 3", "paquet de 5".
+  const frPack = t.match(/\b(?:pack|paquet)\s*(?:de\s*)?(\d{1,2})\b/);
+  if (frPack?.[1]) {
+    const n = Number(frPack[1]);
+    if (n >= 2 && n <= 12) return n;
+  }
+
   // Kodak sells a "ProPack" of 5.
   if (/\bpro\s*pack\b/.test(t)) {
     const n = t.match(/\bpro\s*pack[^0-9]{0,12}(\d{1,2})\b/)?.[1];
@@ -191,6 +198,10 @@ export function parseExposures(title: string): 24 | 36 | null {
   // 24exp / 36exp without a space
   if (/\b24\s*exp\b/.test(t) || /\b24exp\b/.test(t)) return 24;
   if (/\b36\s*exp\b/.test(t) || /\b36exp\b/.test(t)) return 36;
+
+  // French: "36 poses"
+  if (/\b24\s*poses?\b/.test(t)) return 24;
+  if (/\b36\s*poses?\b/.test(t)) return 36;
 
   // e.g. "35mm 36" without "exp"
   if (/\b35\s*mm\b/.test(t) && /\b24\b/.test(t) && !/\b120\b/.test(t)) return 24;
@@ -221,14 +232,15 @@ export function parseExpiry(title: string): { isExpired: boolean; expiryLabel: s
   const shortForm = title.match(/\bexp\.?\s*:?\s*(\d{1,2}\s*\/\s*\d{2,4})/i)?.[1];
   if (shortForm) return { isExpired: true, expiryLabel: shortForm.replace(/\s+/g, "") };
 
-  if (!/\bexpired?\b/i.test(title)) return { isExpired: false, expiryLabel: null };
+  if (!/\bexpir|\bp[eé]rim/i.test(title)) return { isExpired: false, expiryLabel: null };
 
   const label =
-    title.match(/\bexpir(?:ed|es|y)?\s*:?\s*(\d{1,2}\s*\/\s*\d{2,4})/i)?.[1] ??
+    // \S* rather than an alternation so "Expired", "Expiré" and "Expirée" all work.
+    title.match(/\bexpir\S*\s*:?\s*(\d{1,2}\s*\/\s*\d{2,4})/i)?.[1] ??
     title.match(
-      /\bexpir(?:ed|es|y)?\s*:?\s*((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{2,4})/i
+      /\bexpir\S*\s*:?\s*((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s*\d{2,4})/i
     )?.[1] ??
-    title.match(/\bexpir(?:ed|es|y)?\s*:?\s*(\d{4})\b/i)?.[1] ??
+    title.match(/\bexpir\S*\s*:?\s*(\d{4})\b/i)?.[1] ??
     null;
 
   return { isExpired: true, expiryLabel: label ? label.replace(/\s+/g, " ").trim() : null };
@@ -238,6 +250,8 @@ export function isBulkRoll(title: string) {
   const t = title.toLowerCase();
   return (
     /\bbulk\b/.test(t) ||
+    // French: "100 pieds"
+    /\b\d+\s*pieds?\b/.test(t) ||
     /\b100'\b/.test(t) ||
     /100\s*(?:ft|feet)\b/.test(t) ||
     /\b100ft\b/.test(t) ||

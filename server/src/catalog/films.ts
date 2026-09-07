@@ -215,7 +215,15 @@ export const filmSeeds: FilmSeed[] = [
     process: "c41",
     // "fujifilm 200" alone is too loose — it would match any Fujifilm product whose
     // title happens to contain 200. Every alias pins a Fuji colour-film word.
-    aliases: ["fujicolor 200", "fujifilm color 200", "fujifilm colour 200", "fujifilm 200 color", "fuji c200"],
+    // "couleur" covers the French-language listings at Sténopé Lab.
+    aliases: [
+      "fujicolor 200",
+      "fujifilm color 200",
+      "fujifilm colour 200",
+      "fujifilm couleur 200",
+      "fujifilm 200 color",
+      "fuji c200",
+    ],
   },
   {
     id: "fujifilm-400",
@@ -224,7 +232,13 @@ export const filmSeeds: FilmSeed[] = [
     iso: 400,
     type: "color",
     process: "c41",
-    aliases: ["fujicolor 400", "fujifilm color 400", "fujifilm colour 400", "fujifilm 400 color"],
+    aliases: [
+      "fujicolor 400",
+      "fujifilm color 400",
+      "fujifilm colour 400",
+      "fujifilm couleur 400",
+      "fujifilm 400 color",
+    ],
   },
   {
     id: "harman-phoenix-200",

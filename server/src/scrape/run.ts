@@ -8,6 +8,7 @@ import { pophoAdapter } from "../stores/popho.js";
 import { studioArgentiqueAdapter } from "../stores/studioArgentique.js";
 import { grainationAdapter } from "../stores/graination.js";
 import { filmWarehouseAdapter } from "../stores/filmWarehouse.js";
+import { stenopeLabAdapter } from "../stores/stenopeLab.js";
 import { donsPhotoAdapter } from "../stores/donsPhoto.js";
 import { kerrisdaleAdapter } from "../stores/kerrisdale.js";
 import { pinnedListings } from "../stores/pinnedListings.js";
@@ -277,6 +278,7 @@ export async function runScrape() {
     studioArgentiqueAdapter,
     grainationAdapter,
     filmWarehouseAdapter,
+    stenopeLabAdapter,
     donsPhotoAdapter,
     kerrisdaleAdapter,
   ] as const;
