@@ -38,6 +38,7 @@ npm run dev
 - Web: `http://localhost:5173`
 
 ## Docs
+- Changelog: `CHANGELOG.md`
 - Plan: `PLAN.md`
 - Deploying to the NAS: `DEPLOY.md`
 

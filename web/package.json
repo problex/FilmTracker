@@ -1,5 +1,6 @@
 {
   "name": "filmtracker-web",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -19,4 +20,3 @@
     "vite": "^7.1.3"
   }
 }
-
