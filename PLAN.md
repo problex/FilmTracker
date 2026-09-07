@@ -1,9 +1,12 @@
 # Film Price Tracker (Canada) — Development Plan
 
-## Goal (v1)
+## Goal (v1) — shipped as v1.0.0
 Track **popular 35mm film** prices from **Canadian stores only** and display, for each film, the **lowest 3 in-stock offers** (CAD) with links and timestamps.
 
-## Stores (locked)
+Current: **115 films** (52 core, 63 extended) across **10 scraping stores**, ~560 live
+listings. See `CHANGELOG.md`.
+
+## Stores
 - Aden Camera (Toronto, ON) ✅ *implemented (Shopify)*
 - FilmWarehouse (online, CA) ✅ *implemented (WooCommerce Store API)*
 - Beau Photo (Vancouver, BC) ✅ *implemented (WooCommerce Store API, tag/variation format detection)*
@@ -13,8 +16,32 @@ Track **popular 35mm film** prices from **Canadian stores only** and display, fo
 - Kerrisdale Cameras (Vancouver, BC) ⚠️ *implemented (browser adapter) — truncates*
 - Lord Photo (Saint-Jean-sur-Richelieu, QC) ❌ *no working mechanism; its Dakis search returns no product results*
 - Popho Camera (Montréal, QC) ✅ *implemented (Shopify)*
+- Sténopé Lab (Montréal, QC) ✅ *implemented (Shopify, French-language titles)*
 - Studio Argentique (Montréal, QC) ✅ *implemented (Shopify)*
 - TheCameraStore (Calgary, AB) ✅ *implemented (Shopify)*
+
+Browser-driven stores (Dons Photo, Kerrisdale) still truncate only in the sense that
+they scrape **core films only** — a deliberate limit, not a failure. See *Film tiers*.
+
+Surveyed and rejected, so they are not re-investigated: `lift.ca` (cine film only),
+`filmbase.ca` (smart-glass window film), `camera-traders.com` (one expired 2014 roll),
+`excellentphoto.ca` (no film), `caravanbeachshop.com` (two rolls), and Flic Film's
+other Canadian stockists, none of which expose a catalogue endpoint.
+
+## Film tiers
+Each film is `core` or `extended` (`FilmSeed.tier`, defaulting to core).
+
+- **core** — the curated set. Shown by default, scraped by every store.
+- **extended** — everything else. Shown when the reader asks for all films, and
+  **skipped by the two browser-driven stores**, which load a page per film at ~12s
+  each. Without the split those two would add roughly 45 minutes to every scrape for
+  films the eight bulk stores already cover.
+
+Search deliberately ignores the tier: looking a film up should find it either way.
+
+Films found by `npm run discover` should be added as `extended` unless genuinely
+common. Note `tier` is optional and defaults to core, so omitting it silently
+promotes a film into the browser stores' workload.
 
 ## Comparison rules (v1 current)
 - **Format**: 35mm / 135 only (non-35mm excluded).
