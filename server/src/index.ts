@@ -10,6 +10,9 @@ import { discoveredTitlesRouter } from "./api/discoveredTitles.js";
 import { startScrapeScheduler } from "./scrape/schedule.js";
 import { buildCorsOptions } from "./corsOrigins.js";
 import { assertAdminTokenConfigured, requireAdmin } from "./api/adminAuth.js";
+import { authRouter } from "./api/auth.js";
+import { followsRouter } from "./api/follows.js";
+import { attachUser } from "./auth/session.js";
 
 dotenv.config();
 
@@ -22,10 +25,16 @@ app.use(express.json());
 
 app.use(cors(buildCorsOptions()));
 
+// Populates req.user when a session cookie is present. Never rejects — the price
+// pages stay public and anonymous.
+app.use(attachUser);
+
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
+app.use("/api/auth", authRouter);
+app.use("/api/follows", followsRouter);
 app.use("/api/films", filmsRouter);
 app.use("/api/prices", pricesRouter);
 app.use("/api/admin", requireAdmin, adminRouter);

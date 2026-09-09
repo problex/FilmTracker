@@ -43,5 +43,10 @@ export function corsOriginCallback(
 }
 
 export function buildCorsOptions(): CorsOptions {
-  return { origin: corsOriginCallback };
+  // `credentials` so the session cookie survives a cross-origin call. In production
+  // the browser talks to the same origin through the reverse proxy and this is moot,
+  // but local dev runs the web app on :5173 against the API on :4000, and without it
+  // sign-in silently does nothing there. Note the origin callback never answers with a
+  // wildcard, which is what makes sending credentials safe.
+  return { origin: corsOriginCallback, credentials: true };
 }
