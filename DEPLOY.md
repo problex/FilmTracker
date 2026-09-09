@@ -162,13 +162,13 @@ sudo -n $DOCKER logs filmtracker-server-1 --tail 60 | grep callback
 
    ```powershell
    New-ApplicationAccessPolicy -AppId <client-id> `
-     -PolicyScopeGroupId filmtracker@problex.com `
+     -PolicyScopeGroupId info@problex.com `
      -AccessRight RestrictAccess `
      -Description "FilmTracker price alerts"
    ```
 
    Newer tenants can use *RBAC for Applications* in the Exchange admin centre instead.
-5. Put `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET` and `GRAPH_SENDER`
+5. Put `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET` and `GRAPH_SENDER` (`info@problex.com`)
    in the NAS `.env`, then redeploy.
 
 Confirm which transport is live from the startup log — it prints
