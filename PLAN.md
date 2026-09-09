@@ -498,6 +498,69 @@ not verify. The `--bare` authentication concern above did not materialise on CLI
 
 ---
 
+# Instant film (Polaroid), added 2026-09-08
+
+Polaroid 600, SX-70 and i-Type, on their own page at `#/polaroid` rather than in the
+35mm list. Format is a hard divide in the model — `FilmSeed.format`, a `films.format`
+column, and `GET /api/prices?format=` defaulting to `35mm` so every existing caller
+behaves exactly as before.
+
+**Why a separate page and not a filter.** Instant film has no ISO worth comparing
+against 35mm, is chosen by which camera it fits rather than by speed, and is priced
+per shot. Sharing a table would mean two columns that mean nothing in either
+direction.
+
+## What the stores actually carry
+
+Surveyed all eight bulk-scrapable stores, ~10,000 products:
+
+| Store | Polaroid |
+|---|---|
+| Aden Camera | 600 Colour/B&W, 600 twin pack, SX-70 Colour/B&W — all in stock |
+| Studio Argentique | 600 (single, 2-pack, 5-pack, Colour Frame, Round Frame), SX-70, **i-Type** — mostly out of stock |
+| Beau Photo | Polaroid Originals 600 White Frame, SX-70 White Frame |
+| Graination, FilmWarehouse, Popho, Sténopé, The Camera Store | none (TCS stocks Polaroid *books*) |
+
+19 listings across the 6 films at the time of writing.
+
+## What made this harder than a catalogue addition
+
+- **`ACCESSORY_RX` cannot be reused.** It vetoes "frame" to drop picture frames, but
+  Polaroid names its film after the border of the print — "600 White Frame",
+  "Color Frame", "Color I Round Frame". Filtering on it drops the real products and
+  keeps the cameras: a silent zero. `looksLikeInstantFilm()` has its own veto list,
+  and a test pins the four real titles.
+- **Cameras outnumber film.** Stores list far more Polaroid hardware and photo books
+  than Polaroid film, so the pack type is the positive signal and hardware words are
+  the veto.
+- **Per-store gates had to be respected, not replaced.** The first attempt derived a
+  candidate's format with `detectFilmFormat()` in the WooCommerce adapter, which
+  requires the title to say "35mm" — undoing exactly what Beau Photo's and
+  FilmWarehouse's custom classifiers exist for. The existing suite caught it.
+- **Pack maths.** A pack is 8 shots; "Double Pack, 16 Exposures", "2pak", "eco 5 pack"
+  and "2x Color - Value Pack" all had to parse, or the per-shot price — the number the
+  page sorts on — silently doubles.
+- **Beau Photo needed its own branch**: instant film carries no `35mm` tag and sits
+  outside its film categories, so it never reached the matcher.
+
+## Stores probed and rejected for instant (2026-09-08)
+
+No Canadian retailer carrying Polaroid exposes a catalogue endpoint beyond the three
+above. Checked and rejected, in addition to the table further up:
+
+`henrys.com`, `vistek.ca`, `pikto.com`, `mcbaincamera.com` (no `products.json` on the
+apex or `www` host), `lozeau.com` and `gosselinphoto.ca` (HTML catch-all behind a
+200), `instantfilm.ca` (WordPress, no Store API route), plus `sunny16.ca`,
+`chromafilm.ca`, `grainfilmlab.ca`, `filmbox.ca`, `revivalphoto.ca`,
+`junkstorecameras.com`, `westcamera.ca`, `photoexpert.ca`, `labphoto.ca`,
+`cameracanada.com`, `theanaloguestore.ca`, `analogshop.ca`, `filmdev.ca`,
+`borealfilm.ca`, `shootfilm.ca`, `analoguesupply.ca`, `filmphotostore.ca`,
+`thefilmshop.ca`, `argentiquemontreal.com`, `kamerastore.ca`, `centralcamera.ca` —
+none resolve or none expose either endpoint. `polaroid.com` itself is Next.js with no
+catalogue JSON, the same reason `torontofilmlab.com` was rejected.
+
+---
+
 ## Milestones
 1. **Scaffold app + DB schema**
    - Monorepo, Postgres, migrations, API skeleton, minimal UI

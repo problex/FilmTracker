@@ -1,7 +1,8 @@
-import type { FilmSeed } from "../catalog/films.js";
+import { filmFormat, type FilmSeed } from "../catalog/films.js";
 import type { CandidatesByFilmId, ListingCandidate, StoreAdapter } from "./types.js";
 import {
   isBulkRoll,
+  looksLikeInstantFilm,
   matchesFilmAliases,
   parseExpiry,
   parseExposures,
@@ -77,10 +78,38 @@ export const beauPhotoAdapter: StoreAdapter = {
     const byFilmId: CandidatesByFilmId = new Map(films.map((f) => [f.id, []]));
 
     for (const p of products) {
-      if (!inFilmCategory(p) || !hasTag(p, "35mm")) continue;
-
       const name = decodeEntities(p.name ?? "");
-      if (!name || ACCESSORY_RX.test(name)) continue;
+      if (!name) continue;
+
+      // Instant film clears none of the 35mm gates below: it carries no `35mm` tag,
+      // sits outside the film categories, and its own product names contain "Frame",
+      // which ACCESSORY_RX vetoes. Handled first, on its own terms.
+      if (looksLikeInstantFilm(name)) {
+        const instantFilm = films.find(
+          (f) => filmFormat(f) === "instant" && matchesFilmAliases(name, f.aliases)
+        );
+        if (!instantFilm) continue;
+
+        const priceCadCents = toCadCents(p.prices);
+        if (priceCadCents == null || !p.permalink) continue;
+
+        byFilmId.get(instantFilm.id)?.push({
+          url: p.permalink,
+          titleRaw: name,
+          priceCadCents,
+          currency: "CAD",
+          inStock: Boolean(p.is_in_stock),
+          packSize: parsePackSize(name),
+          exposures: parseExposures(name),
+          isBulk: false,
+          ...parseExpiry(name),
+          lastCheckedAt: new Date(),
+        });
+        continue;
+      }
+
+      if (!inFilmCategory(p) || !hasTag(p, "35mm")) continue;
+      if (ACCESSORY_RX.test(name)) continue;
 
       const film = films.find((f) => matchesFilmAliases(name, f.aliases));
       if (!film) continue;

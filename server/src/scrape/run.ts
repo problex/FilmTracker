@@ -1,5 +1,5 @@
 import { db as dbPromise } from "../db/db.js";
-import { filmSeeds, filmTier } from "../catalog/films.js";
+import { filmFormat, filmSeeds, filmTier } from "../catalog/films.js";
 import { storeSeeds } from "../catalog/stores.js";
 import { theCameraStoreAdapter } from "../stores/theCameraStore.js";
 import { beauPhotoAdapter } from "../stores/beauPhoto.js";
@@ -25,17 +25,18 @@ async function ensureFilmsSeeded() {
   for (const f of filmSeeds) {
     await db.query(
       `
-      INSERT INTO films (id, brand, name, iso, type, process, tier)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO films (id, brand, name, iso, type, process, tier, format)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (id) DO UPDATE SET
         brand = EXCLUDED.brand,
         name = EXCLUDED.name,
         iso = EXCLUDED.iso,
         type = EXCLUDED.type,
         process = EXCLUDED.process,
-        tier = EXCLUDED.tier
+        tier = EXCLUDED.tier,
+        format = EXCLUDED.format
       `,
-      [f.id, f.brand, f.name, f.iso, f.type, f.process, filmTier(f)]
+      [f.id, f.brand, f.name, f.iso, f.type, f.process, filmTier(f), filmFormat(f)]
     );
 
     for (const a of f.aliases) {
@@ -57,7 +58,7 @@ async function upsertListingAndSnapshot(params: {
   url: string;
   titleRaw: string;
   packSize: number | null;
-  exposures: 24 | 36 | null;
+  exposures: 8 | 16 | 24 | 36 | null;
   isBulk: boolean;
   isExpired: boolean;
   expiryLabel: string | null;
@@ -164,9 +165,9 @@ async function upsertListingAndSnapshot(params: {
  * default. Bulk rolls are excluded — they are sold by length, not exposures.
  */
 function resolveExposures(
-  candidate: { exposures: 24 | 36 | null; isBulk: boolean },
+  candidate: { exposures: 8 | 16 | 24 | 36 | null; isBulk: boolean },
   filmId: string
-): 24 | 36 | null {
+): 8 | 16 | 24 | 36 | null {
   if (candidate.exposures != null) return candidate.exposures;
   if (candidate.isBulk) return null;
   return filmSeeds.find((f) => f.id === filmId)?.defaultExposures ?? null;
@@ -339,8 +340,11 @@ export async function runScrape() {
       // Browser-driven stores load a page per film at ~12s each, so they cover the
       // core catalogue only. Extended films are still tracked by the seven bulk
       // stores, where an extra film costs nothing.
+      //
+      // They skip instant film outright: none of them stock Polaroid, and each film
+      // they do not skip costs a page load against an already tight budget.
       const filmsForStore = isBrowserStore
-        ? filmSeeds.filter((f) => filmTier(f) === "core")
+        ? filmSeeds.filter((f) => filmTier(f) === "core" && filmFormat(f) === "35mm")
         : filmSeeds;
 
       for (const film of filmsForStore) {

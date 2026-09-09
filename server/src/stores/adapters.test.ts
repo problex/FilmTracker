@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { filmSeeds } from "../catalog/films.js";
+import { filmFormat, filmSeeds } from "../catalog/films.js";
 
 /**
  * Adapters run against saved responses from the live stores.
@@ -162,6 +162,67 @@ describe("WooCommerce Store API adapter", () => {
     expect(byFilm.get("kentmere-pan-400")?.map((c) => c.titleRaw)).toContain(
       "Kentmere Pan 400 35mm"
     );
+  });
+});
+
+describe("Polaroid (instant) via the Shopify bulk adapter", () => {
+  // Aden Camera's real catalogue, filtered to every product carrying the brand — so
+  // the cameras and the Go starter set are in the fixture on purpose.
+  beforeEach(() => {
+    const catalog = fixture("shopify-aden-polaroid.json");
+    fetchText.mockImplementation(async (url) =>
+      url.includes("page=1") ? catalog : JSON.stringify({ products: [] })
+    );
+  });
+
+  const build = () =>
+    createShopifyAdapter({
+      storeId: "aden-camera",
+      storeName: "Aden Camera",
+      baseUrl: "https://www.adencamera.com",
+    });
+
+  it("matches each pack to the right film", async () => {
+    const byFilm = await build().fetchCandidatesForAllFilms!(filmSeeds);
+    const titles = (id: string) => (byFilm.get(id) ?? []).map((c) => c.titleRaw);
+
+    expect(titles("polaroid-600-bw")).toContain("Polaroid - Black & White 600 Instant Film");
+    expect(titles("polaroid-sx70-bw")).toContain("Polaroid - Black & White SX-70 Instant Film");
+    expect(titles("polaroid-sx70-color")).toContain("Polaroid - Color SX-70 Instant Film");
+    expect(titles("polaroid-600-color")).toContain("Polaroid - Color 600 Type Instant Film");
+    expect(titles("polaroid-600-color")).toContain(
+      "Polaroid - Color 600 Instant Film (Double Pack, 16 Exposures)"
+    );
+  });
+
+  it("records the twin pack's 16 shots, so price per shot is right", async () => {
+    const byFilm = await build().fetchCandidatesForAllFilms!(filmSeeds);
+    const twin = (byFilm.get("polaroid-600-color") ?? []).find((c) =>
+      c.titleRaw.includes("Double Pack")
+    );
+
+    expect(twin, "expected the double pack").toBeDefined();
+    expect(twin!.exposures).toBe(16);
+    // Read as a single 8-shot pack this is $7.87/shot rather than $3.94 — a wrong
+    // answer that looks entirely plausible on the page.
+    expect(twin!.priceCadCents).toBe(6299);
+  });
+
+  it("admits no cameras or kits", async () => {
+    const byFilm = await build().fetchCandidatesForAllFilms!(filmSeeds);
+    const all = [...byFilm.values()].flat().map((c) => c.titleRaw);
+
+    expect(all.length).toBeGreaterThan(0);
+    expect(all.some((t) => /camera|starter set/i.test(t))).toBe(false);
+  });
+
+  it("puts nothing instant into a 35mm film, or the reverse", async () => {
+    const byFilm = await build().fetchCandidatesForAllFilms!(filmSeeds);
+    for (const f of filmSeeds) {
+      const got = byFilm.get(f.id) ?? [];
+      if (got.length === 0) continue;
+      expect(filmFormat(f), `${f.id} took ${got[0]!.titleRaw}`).toBe("instant");
+    }
   });
 });
 

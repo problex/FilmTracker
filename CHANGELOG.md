@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+### Polaroid
+
+- **Instant film, on its own page** at `#/polaroid`: Polaroid 600, SX-70 and i-Type in
+  colour and black & white, from Aden Camera, Studio Argentique and Beau Photo. Sorted
+  by **price per shot**, which is the only figure that compares a single pack against a
+  twin pack against a five-pack, and labelled by the camera each pack fits — a 600 pack
+  carries the battery a vintage 600 body needs, so 600 film works in i-Type cameras
+  while i-Type film does not work in 600 ones.
+- **Format is a hard divide in the model**, not a filter: `FilmSeed.format`, a
+  `films.format` column, and `GET /api/prices?format=` defaulting to `35mm` so the main
+  list and every existing caller are untouched. Candidate films are narrowed by format
+  *before* alias matching, so a Polaroid title can never be assigned to a 35mm film.
+- Pack maths for instant: 8 shots to a pack, with "Double Pack, 16 Exposures", "2pak",
+  "eco 5 pack" and "2x Color - Value Pack" all parsed. Unparsed, a twin pack reads at
+  double its true price per shot.
+- Browser-driven stores skip instant film — none of them stock it, and each film they
+  do not skip costs a page load.
+
 ### Operations
 
 - **The repair agent's repair path is tested.** Run end to end against a staged
@@ -17,6 +35,15 @@
 
 ### Scraping
 
+- **`ACCESSORY_RX` is not applied to instant film.** It vetoes "frame" to drop picture
+  frames, but Polaroid names its film after the border of the print — "600 White
+  Frame", "Color Frame", "Color I Round Frame". Reusing it would have dropped the real
+  products while keeping the cameras, which reads as a store carrying no Polaroid
+  rather than as an error.
+- **Per-store format classifiers are respected rather than replaced.** Deriving a
+  candidate's format from its title in the WooCommerce adapter undid what Beau Photo's
+  and FilmWarehouse's custom classifiers exist for — their titles omit the format
+  entirely. Caught by the existing suite before it shipped.
 - **A WooCommerce page limit of 0 no longer means "fetch nothing".** `fetchWooCatalog`
   treats a non-positive limit as unset, so a store cannot be configured into returning
   an empty catalogue that reads as a clean scrape. Covered by a test that runs the

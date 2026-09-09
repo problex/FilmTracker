@@ -1,9 +1,9 @@
-import type { FilmSeed } from "../catalog/films.js";
+import { filmFormat, type FilmFormat, type FilmSeed } from "../catalog/films.js";
 import type { CandidatesByFilmId, ListingCandidate, StoreAdapter } from "./types.js";
 import {
   fetchText,
   isBulkRoll,
-  looksLike35mm,
+  detectFilmFormat,
   matchesFilmAliases,
   parseExpiry,
   parseExposures,
@@ -77,11 +77,11 @@ async function fetchProductJson(baseUrl: string, handle: string): Promise<Shopif
   return (await res.json()) as ShopifyProductJs;
 }
 
-function chooseBest35mmVariant(p: ShopifyProductJs) {
-  // Choose the cheapest available variant that looks like 35mm.
+function chooseBestVariant(p: ShopifyProductJs, format: FilmFormat) {
+  // Choose the cheapest available variant matching the film's own format.
   const candidates = p.variants
     .filter((v) => v && typeof v.title === "string")
-    .filter((v) => looksLike35mm(`${p.title} ${v.title}`))
+    .filter((v) => detectFilmFormat(`${p.title} ${v.title}`) === format)
     .sort((a, b) => a.price - b.price);
   return candidates[0] ?? null;
 }
@@ -112,13 +112,20 @@ async function fetchCatalog(baseUrl: string) {
   return products;
 }
 
-/** Cheapest 35mm-looking variant of a products.json entry, with price in cents. */
-function chooseBest35mmVariantFromCatalog(p: ShopifyProductsJson["products"][number]) {
+/**
+ * Cheapest variant of a products.json entry that is a format we track, with price in
+ * cents and the format it was recognised as. The format travels with the variant so
+ * the caller can restrict alias matching to films of that format.
+ */
+function chooseBestTrackedVariantFromCatalog(p: ShopifyProductsJson["products"][number]) {
   const candidates = p.variants
     .filter((v) => v && typeof v.title === "string")
-    .map((v) => ({ ...v, priceCadCents: parseMoneyToCents(v.price) }))
-    .filter((v) => v.priceCadCents != null)
-    .filter((v) => looksLike35mm(`${p.title} ${v.title}`))
+    .map((v) => ({
+      ...v,
+      priceCadCents: parseMoneyToCents(v.price),
+      format: detectFilmFormat(`${p.title} ${v.title}`),
+    }))
+    .filter((v) => v.priceCadCents != null && v.format != null)
     .sort((a, b) => (a.priceCadCents ?? 0) - (b.priceCadCents ?? 0));
   return candidates[0] ?? null;
 }
@@ -139,7 +146,8 @@ export function createShopifyAdapter(params: {
     baseUrl,
 
     async fetchCandidatesForFilm(film: FilmSeed): Promise<ListingCandidate[]> {
-      const q = `${film.aliases[0] ?? `${film.brand} ${film.name}`} 35mm`;
+      const format = filmFormat(film);
+      const q = `${film.aliases[0] ?? `${film.brand} ${film.name}`}${format === "35mm" ? " 35mm" : ""}`;
       const u = new URL(searchPath, baseUrl);
       u.searchParams.set("q", q);
 
@@ -151,7 +159,7 @@ export function createShopifyAdapter(params: {
         const p = await fetchProductJson(baseUrl, handle).catch(() => null);
         if (!p) continue;
 
-        const variant = chooseBest35mmVariant(p);
+        const variant = chooseBestVariant(p, format);
         if (!variant) continue;
 
         const variantPart = variant.title && variant.title.toLowerCase() !== "default title" ? ` — ${variant.title}` : "";
@@ -185,14 +193,18 @@ export function createShopifyAdapter(params: {
       for (const p of products) {
         if (!Array.isArray(p.variants) || typeof p.title !== "string") continue;
 
-        const variant = chooseBest35mmVariantFromCatalog(p);
-        if (!variant || variant.priceCadCents == null) continue;
+        const variant = chooseBestTrackedVariantFromCatalog(p);
+        if (!variant || variant.priceCadCents == null || variant.format == null) continue;
 
         const variantPart =
           variant.title && variant.title.toLowerCase() !== "default title" ? ` — ${variant.title}` : "";
         const titleRaw = `${p.title}${variantPart}`;
 
-        const film = films.find((f) => matchesFilmAliases(titleRaw, f.aliases));
+        // Format first: a Polaroid title must never be offered to a 35mm film's
+        // aliases, nor the reverse.
+        const film = films.find(
+          (f) => filmFormat(f) === variant.format && matchesFilmAliases(titleRaw, f.aliases)
+        );
         if (!film) continue;
 
         const url = new URL(`/products/${p.handle}`, baseUrl);

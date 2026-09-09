@@ -1,0 +1,7 @@
+BEGIN;
+
+ALTER TABLE films ADD COLUMN format TEXT NOT NULL DEFAULT '35mm';
+
+CREATE INDEX IF NOT EXISTS films_format_idx ON films (format);
+
+COMMIT;

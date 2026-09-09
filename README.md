@@ -42,3 +42,7 @@ npm run dev
 - Plan: `PLAN.md`
 - Deploying to the NAS: `DEPLOY.md`
 
+## Pages
+- `/` — 35mm film, lowest 3 in-stock prices per film
+- `#/polaroid` — Polaroid instant film, cheapest per shot
+

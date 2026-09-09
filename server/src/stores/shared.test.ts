@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  detectFilmFormat,
   isBulkRoll,
   looksLike35mm,
+  looksLikeInstantFilm,
   matchesFilmAliases,
   parseExpiry,
   parseExposures,
   parseMoneyToCents,
   parsePackSize,
 } from "./shared.js";
-import { filmSeeds } from "../catalog/films.js";
+import { filmFormat, filmSeeds } from "../catalog/films.js";
 
 /**
  * Every case below is a real listing title from a Canadian store, and most encode a
@@ -208,5 +210,113 @@ describe("parseExposures / parseMoneyToCents / isBulkRoll", () => {
   it("detects bulk rolls", () => {
     expect(isBulkRoll("Ilford HP5 Plus 400 - 35mm - 100ft roll")).toBe(true);
     expect(isBulkRoll("Kodak Gold 200 - 35mm, 36 exp.")).toBe(false);
+  });
+});
+
+describe("looksLikeInstantFilm / detectFilmFormat", () => {
+  // Every title here is real, from Aden Camera, Studio Argentique or Beau Photo.
+
+  it("accepts Polaroid film across all three stores' naming", () => {
+    expect(looksLikeInstantFilm("Polaroid - Color 600 Type Instant Film")).toBe(true);
+    expect(looksLikeInstantFilm("Polaroid - Black & White 600 Instant Film")).toBe(true);
+    expect(looksLikeInstantFilm("Polaroid - Color SX-70 Instant Film")).toBe(true);
+    expect(looksLikeInstantFilm("Polaroid 600 Film | Color")).toBe(true);
+    expect(looksLikeInstantFilm("Polaroid 600 Color | eco 5 pack")).toBe(true);
+  });
+
+  /**
+   * ACCESSORY_RX vetoes "frame" to drop picture frames, but Polaroid names its own
+   * film after the border of the print. Reusing that filter here would have dropped
+   * every one of these while leaving the cameras — a silent zero, not an error.
+   */
+  it("keeps film whose name contains 'frame'", () => {
+    expect(looksLikeInstantFilm("Polaroid Originals 600 White Frame")).toBe(true);
+    expect(looksLikeInstantFilm("Polaroid Originals SX-70 White Frame Colour Film")).toBe(true);
+    expect(looksLikeInstantFilm("Polaroid 600 Film | Color Frame")).toBe(true);
+    expect(looksLikeInstantFilm("Polaroid 600 Film | Color I Round Frame")).toBe(true);
+  });
+
+  /** Stores list far more Polaroid hardware and photo books than Polaroid film. */
+  it("rejects cameras, hardware and books that carry the brand", () => {
+    expect(looksLikeInstantFilm("Polaroid Now I-Type Instant Film Camera (Black)")).toBe(false);
+    expect(looksLikeInstantFilm("Polaroid Camera I-2")).toBe(false);
+    expect(looksLikeInstantFilm("Used Polaroid EE 100 Camera")).toBe(false);
+    expect(looksLikeInstantFilm("Polaroid - Go Starter Set")).toBe(false);
+    expect(looksLikeInstantFilm("Polaroid Hi-Print 4x6 Photo Printer Everything Box")).toBe(false);
+    expect(looksLikeInstantFilm("Polaroid Flip + 8 instant photos kit- black")).toBe(false);
+    expect(looksLikeInstantFilm("Andy Warhol Polaroids 1958 - 1987")).toBe(false);
+    expect(looksLikeInstantFilm("Polaroid : The Complete Guide to Experimental Instant Photography")).toBe(false);
+  });
+
+  it("keeps the two formats apart", () => {
+    expect(detectFilmFormat("Polaroid - Color 600 Type Instant Film")).toBe("instant");
+    expect(detectFilmFormat("Kodak Gold 200 - 35mm, 36 exp.")).toBe("35mm");
+    expect(detectFilmFormat("Polaroid Now I-Type Instant Film Camera (Black)")).toBe(null);
+    expect(detectFilmFormat("Ilford Delta 100 4x5 (25 Sheets)")).toBe(null);
+  });
+});
+
+describe("Polaroid alias resolution", () => {
+  const instant = filmSeeds.filter((f) => filmFormat(f) === "instant");
+  const resolve = (title: string) =>
+    instant.find((f) => matchesFilmAliases(title, f.aliases))?.id ?? null;
+
+  it("assigns each store's real titles to the right film", () => {
+    expect(resolve("Polaroid - Color 600 Type Instant Film")).toBe("polaroid-600-color");
+    expect(resolve("Polaroid - Color 600 Instant Film (Double Pack, 16 Exposures)")).toBe("polaroid-600-color");
+    expect(resolve("Polaroid 600 Film | Color")).toBe("polaroid-600-color");
+    expect(resolve("Polaroid 600 Color | eco 5 pack")).toBe("polaroid-600-color");
+    expect(resolve("Polaroid - Black & White 600 Instant Film")).toBe("polaroid-600-bw");
+    expect(resolve("Polaroid 600 Film | B&W")).toBe("polaroid-600-bw");
+    expect(resolve("Polaroid - Color SX-70 Instant Film")).toBe("polaroid-sx70-color");
+    expect(resolve("Polaroid Originals SX-70 White Frame Colour Film")).toBe("polaroid-sx70-color");
+    expect(resolve("Polaroid - Black & White SX-70 Instant Film")).toBe("polaroid-sx70-bw");
+  });
+
+  /**
+   * The colour seeds carry a "white frame" alias so Beau Photo's
+   * "Polaroid Originals 600 White Frame" is matched at all — the title names the
+   * border, not the emulsion. That alias would also match a black & white white-frame
+   * pack, so the black & white seeds are ordered first in `filmSeeds` and win.
+   * Widening an alias to force a match is how this project priced Kentmere 100 as 400.
+   */
+  it("resolves an ambiguous white-frame title to black & white when it says so", () => {
+    expect(resolve("Polaroid Originals 600 White Frame")).toBe("polaroid-600-color");
+    expect(resolve("Polaroid Originals 600 B&W White Frame")).toBe("polaroid-600-bw");
+  });
+
+  it("never lets a Polaroid title match a 35mm film", () => {
+    const thirtyFive = filmSeeds.filter((f) => filmFormat(f) === "35mm");
+    for (const title of [
+      "Polaroid - Color 600 Type Instant Film",
+      "Polaroid Originals SX-70 White Frame Colour Film",
+      "Polaroid 600 Film | B&W",
+    ]) {
+      expect(thirtyFive.find((f) => matchesFilmAliases(title, f.aliases))?.id).toBeUndefined();
+    }
+  });
+});
+
+describe("instant pack sizes and shot counts", () => {
+  /** "2pak" is Studio Argentique's spelling; without it the price per shot doubles. */
+  it("reads pack size from a store's own spelling", () => {
+    expect(parsePackSize("Polaroid 600 Film Color | 2pak")).toBe(2);
+    expect(parsePackSize("Polaroid 600 Color | eco 5 pack")).toBe(5);
+    // Read as one pack this is $6.00/shot, twice the price of the single it sits next
+    // to on the same shelf — a wrong answer that looks like a bad deal.
+    expect(parsePackSize("Polaroid i-Type Film | 2x Color - Value Pack")).toBe(2);
+  });
+
+  it("does not read '2x' as a pack size on 35mm titles", () => {
+    // Only instant titles get the "2x" rule: on 35mm a bare "2x" is a teleconverter.
+    expect(parsePackSize("Kodak Portra 400 35mm 2x Teleconverter Bundle")).toBe(null);
+  });
+
+  it("reads shot counts for instant packs, and leaves 35mm parsing alone", () => {
+    expect(parseExposures("Polaroid - Color 600 Instant Film (Double Pack, 16 Exposures)")).toBe(16);
+    // Nothing stated: falls through to the seed's defaultExposures of 8.
+    expect(parseExposures("Polaroid 600 Film | Color")).toBe(null);
+    expect(parseExposures("Kodak Gold 200 - 35mm, 24 exp.")).toBe(24);
+    expect(parseExposures("Kodak Ultramax 400 135-36")).toBe(36);
   });
 });

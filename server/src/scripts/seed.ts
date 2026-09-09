@@ -1,5 +1,5 @@
 import { db as dbPromise } from "../db/db.js";
-import { filmSeeds, filmTier } from "../catalog/films.js";
+import { filmFormat, filmSeeds, filmTier } from "../catalog/films.js";
 import { storeSeeds } from "../catalog/stores.js";
 
 async function main() {
@@ -21,17 +21,18 @@ async function main() {
   for (const f of filmSeeds) {
     await db.query(
       `
-      INSERT INTO films (id, brand, name, iso, type, process, tier)
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      INSERT INTO films (id, brand, name, iso, type, process, tier, format)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
       ON CONFLICT (id) DO UPDATE SET
         brand = EXCLUDED.brand,
         name = EXCLUDED.name,
         iso = EXCLUDED.iso,
         type = EXCLUDED.type,
         process = EXCLUDED.process,
-        tier = EXCLUDED.tier
+        tier = EXCLUDED.tier,
+        format = EXCLUDED.format
       `,
-      [f.id, f.brand, f.name, f.iso, f.type, f.process, filmTier(f)]
+      [f.id, f.brand, f.name, f.iso, f.type, f.process, filmTier(f), filmFormat(f)]
     );
 
     for (const a of f.aliases) {

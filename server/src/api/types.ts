@@ -4,7 +4,8 @@ export type OfferDto = {
   priceCadCents: number;
   url: string;
   packSize: number | null;
-  exposures: 24 | 36 | null;
+  /** Frames per unit: 8 or 16 for instant packs, 24 or 36 for 35mm rolls. */
+  exposures: 8 | 16 | 24 | 36 | null;
   isBulk: boolean;
   lastCheckedAt: string;
 };
@@ -18,6 +19,8 @@ export type FilmWithTopOffersDto = {
   process: string | null;
   /** `core` is the curated default view; `extended` is shown on request. */
   tier: "core" | "extended";
+  /** `35mm` is the main list; `instant` is shown on its own page. */
+  format: "35mm" | "instant";
   offers: OfferDto[];
 };
 

@@ -151,11 +151,58 @@ export function looksLike35mm(title: string) {
   return has35 && !excludes;
 }
 
+/**
+ * Instant film is not 35mm and never says so, so `looksLike35mm()` rejects all of it.
+ *
+ * Two things make this test its own function rather than a loosened 35mm one:
+ *
+ *  - **It must not reuse `ACCESSORY_RX`.** That excludes "frame", and Polaroid's film
+ *    is literally named "600 White Frame", "Color Frame" and "Color I Round Frame" —
+ *    the word describes the border of the print. Filtering on it would drop the real
+ *    products while leaving the cameras, which is the silent-zero failure this
+ *    project keeps hitting.
+ *  - **Cameras outnumber film.** Stores list far more Polaroid hardware than Polaroid
+ *    film ("Polaroid Now I-Type Instant Film Camera", "Go Starter Set", "Hi-Print
+ *    Photo Printer"), plus photo books that carry the brand ("Andy Warhol Polaroids
+ *    1958 - 1987"). The pack type is the positive signal; hardware words are the veto.
+ */
+const INSTANT_PACK_RX = /\b(600|sx[-\s]?70|i[-\s]?type|itype)\b/i;
+const INSTANT_NOT_FILM_RX =
+  /\b(camera|printer|starter set|kit|album|book|guide|scanner|backpack|bag|strap|case|everything box)\b/i;
+
+export function looksLikeInstantFilm(title: string) {
+  const t = title.toLowerCase();
+  if (!/\bpolaroid(s)?\b/.test(t)) return false;
+  if (INSTANT_NOT_FILM_RX.test(t)) return false;
+  return INSTANT_PACK_RX.test(t);
+}
+
+/**
+ * Which tracked format a listing title is, or null when it is neither. Adapters use
+ * this to narrow the candidate films *before* alias matching, so a Polaroid title can
+ * never be assigned to a 35mm film or the reverse.
+ */
+export function detectFilmFormat(title: string): "35mm" | "instant" | null {
+  if (looksLikeInstantFilm(title)) return "instant";
+  if (looksLike35mm(title)) return "35mm";
+  return null;
+}
+
 export function parsePackSize(title: string) {
   const t = title.toLowerCase();
 
+  // "2x Color - Value Pack" (Studio Argentique). Instant only: on a 35mm title a
+  // bare "2x" is far more likely to be a teleconverter or a lens than a pack count.
+  if (looksLikeInstantFilm(title)) {
+    const times = t.match(/\b(\d{1,2})\s*x\b/);
+    if (times?.[1]) {
+      const n = Number(times[1]);
+      if (n >= 2 && n <= 12) return n;
+    }
+  }
+
   // "3 pack", "3-pack", "3pack", "3pk", "3 pk"
-  const pack = t.match(/\b(\d{1,2})\s*[-–]?\s*(?:packs?|pks?)\b/);
+  const pack = t.match(/\b(\d{1,2})\s*[-–]?\s*(?:packs?|paks?|pks?)\b/);
   if (pack?.[1]) {
     const n = Number(pack[1]);
     if (n >= 1 && n <= 12) return n;
@@ -185,8 +232,19 @@ export function parsePackSize(title: string) {
   return null;
 }
 
-export function parseExposures(title: string): 24 | 36 | null {
+export function parseExposures(title: string): 8 | 16 | 24 | 36 | null {
   const t = title.toLowerCase();
+
+  // Instant film is sold in packs of 8, and twin packs of 16. Gated on the title
+  // being instant film so nothing below changes for 35mm, where a bare "8" or "16"
+  // is far more likely to be a lens aperture or a box count than a frame count.
+  if (looksLikeInstantFilm(title)) {
+    if (/\b16\b/.test(t) && /\bexp(?:osure)?s?\b/.test(t)) return 16;
+    if (/\bdouble\s*pack\b/.test(t)) return 16;
+    if (/\b8\b/.test(t) && /\bexp(?:osure)?s?\b/.test(t)) return 8;
+    // Anything else falls through to the seed's defaultExposures of 8.
+    return null;
+  }
   // Common formats: "36 exp", "36exp", "36 exposures", "135-36", "135-36exp"
   if (/\b24\b/.test(t) && /\bexp(?:osure)?s?\b/.test(t)) return 24;
   if (/\b36\b/.test(t) && /\bexp(?:osure)?s?\b/.test(t)) return 36;

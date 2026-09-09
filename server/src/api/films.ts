@@ -162,7 +162,7 @@ filmsRouter.get("/:id/offers", async (req, res) => {
     price_cad_cents: number;
     url: string;
     pack_size: number | null;
-    exposures: 24 | 36 | null;
+    exposures: 8 | 16 | 24 | 36 | null;
     is_bulk: boolean | number;
     captured_at: string;
     in_stock: boolean | number;

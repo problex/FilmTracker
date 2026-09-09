@@ -254,6 +254,9 @@ export function App() {
           <div className="subtitle">Lowest 3 in-stock prices (Canadian stores, 35mm)</div>
         </div>
         <div className="headerActions">
+          <a className="backLink" href="#/polaroid">
+            Polaroid →
+          </a>
           <div className="searchWrap">
             <input
               className="search"

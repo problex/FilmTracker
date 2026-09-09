@@ -771,3 +771,39 @@ th {
     width: 100%;
   }
 }
+
+/* --- Polaroid page ------------------------------------------------------- */
+
+.backLink {
+  color: var(--accent, #6ea8fe);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.backLink:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.pill.pillInstant {
+  background: rgba(255, 209, 102, 0.16);
+  border-color: rgba(255, 209, 102, 0.35);
+  color: #ffd166;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+.polaroidNote {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted, #9aa4b2);
+}
+
+.polaroidFooter {
+  margin-top: 12px;
+  font-size: 12px;
+}

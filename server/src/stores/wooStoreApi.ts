@@ -1,9 +1,10 @@
-import type { FilmSeed } from "../catalog/films.js";
+import { filmFormat, type FilmSeed } from "../catalog/films.js";
 import type { CandidatesByFilmId, ListingCandidate, StoreAdapter } from "./types.js";
 import {
   fetchText,
   isBulkRoll,
   looksLike35mm,
+  looksLikeInstantFilm,
   matchesFilmAliases,
   parseExpiry,
   parseExposures,
@@ -111,13 +112,35 @@ export async function fetchWooCatalog(baseUrl: string, maxPages = MAX_PAGES): Pr
   return out;
 }
 
+/**
+ * The format a candidate was admitted as.
+ *
+ * Deliberately not `detectFilmFormat()`: that requires the title to say "35mm", and
+ * these stores routinely omit it — FilmWarehouse's "Ultramax 400 36exp 3pk" and Beau
+ * Photo's "Candido 400 Colour Film" are 35mm, decided by the store's own classifier
+ * from tags, categories and variation attributes. By the time a candidate exists that
+ * decision has already been made, so re-deriving it here would throw away everything
+ * those classifiers are for.
+ */
+function candidateFormat(titleRaw: string): "35mm" | "instant" {
+  return looksLikeInstantFilm(titleRaw) ? "instant" : "35mm";
+}
+
 function toCandidate(
   p: WooProduct,
   is35mm: (p: WooProduct, title: string) => boolean
 ): ListingCandidate | null {
   const titleRaw = decodeEntities(p.name ?? "");
-  if (!titleRaw || ACCESSORY_RX.test(titleRaw)) return null;
-  if (!is35mm(p, titleRaw)) return null;
+  if (!titleRaw) return null;
+
+  // Instant film takes neither of the 35mm gates. ACCESSORY_RX vetoes "frame", which
+  // is part of Polaroid's own product names ("600 White Frame"), and a store's custom
+  // is35mm classifier reads 35mm tags and format attributes that instant film has no
+  // reason to carry. `looksLikeInstantFilm` already rejects cameras and photo books.
+  if (!looksLikeInstantFilm(titleRaw)) {
+    if (ACCESSORY_RX.test(titleRaw)) return null;
+    if (!is35mm(p, titleRaw)) return null;
+  }
 
   const priceCadCents = toCadCents(p.prices);
   if (priceCadCents == null) return null;
@@ -181,6 +204,7 @@ export function createWooStoreApiAdapter(params: {
       for (const p of products) {
         const candidate = toCandidate(p, is35mm);
         if (!candidate) continue;
+        if (candidateFormat(candidate.titleRaw) !== filmFormat(film)) continue;
         if (!matchesFilmAliases(candidate.titleRaw, film.aliases)) continue;
         out.push(candidate);
       }
@@ -195,7 +219,12 @@ export function createWooStoreApiAdapter(params: {
         const candidate = toCandidate(p, is35mm);
         if (!candidate) continue;
 
-        const film = films.find((f) => matchesFilmAliases(candidate.titleRaw, f.aliases));
+        // Format first: a Polaroid title must never be offered to a 35mm film's
+        // aliases, nor the reverse.
+        const format = candidateFormat(candidate.titleRaw);
+        const film = films.find(
+          (f) => filmFormat(f) === format && matchesFilmAliases(candidate.titleRaw, f.aliases)
+        );
         if (!film) continue;
 
         byFilmId.get(film.id)?.push(candidate);

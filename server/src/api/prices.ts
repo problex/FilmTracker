@@ -17,6 +17,14 @@ const querySchema = z.object({
     .enum(["any", "color", "bw"])
     .optional()
     .transform((v) => v ?? "any"),
+  /**
+   * Which catalogue to return. Defaults to 35mm so existing callers — and the main
+   * page — keep behaving exactly as they did before instant film existed.
+   */
+  format: z
+    .enum(["35mm", "instant"])
+    .optional()
+    .transform((v) => v ?? "35mm"),
 });
 
 export const pricesRouter = Router();
@@ -27,7 +35,7 @@ pricesRouter.get("/", async (req, res) => {
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid query params" });
   }
-  const { inStock, variant, filmType } = parsed.data;
+  const { inStock, variant, filmType, format } = parsed.data;
 
   const filmsResult = await db.query<{
     id: string;
@@ -37,8 +45,9 @@ pricesRouter.get("/", async (req, res) => {
     type: "color" | "bw";
     process: string | null;
     tier: string;
+    format: string;
   }>(
-    `SELECT id, brand, name, iso, type, process, tier
+    `SELECT id, brand, name, iso, type, process, tier, format
      FROM films
      WHERE enabled = TRUE
      ORDER BY brand, name, iso NULLS LAST`
@@ -47,6 +56,7 @@ pricesRouter.get("/", async (req, res) => {
   const data: FilmWithTopOffersDto[] = [];
 
   for (const f of filmsResult.rows) {
+    if ((f.format === "instant" ? "instant" : "35mm") !== format) continue;
     if (filmType !== "any" && f.type !== filmType) continue;
 
     // Latest snapshot per listing, then top 3 cheapest.
@@ -61,7 +71,7 @@ pricesRouter.get("/", async (req, res) => {
       price_cad_cents: number;
       url: string;
       pack_size: number | null;
-      exposures: 24 | 36 | null;
+      exposures: 8 | 16 | 24 | 36 | null;
       is_bulk: boolean | number;
       captured_at: string;
       in_stock: boolean | number;
@@ -121,6 +131,7 @@ pricesRouter.get("/", async (req, res) => {
       type: f.type,
       process: f.process,
       tier: f.tier === "extended" ? "extended" : "core",
+      format: f.format === "instant" ? "instant" : "35mm",
       offers: offersResult.rows.map((o) => ({
         storeId: o.store_id,
         storeName: o.store_name,

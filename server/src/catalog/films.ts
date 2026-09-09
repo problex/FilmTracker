@@ -1,6 +1,14 @@
 export type FilmType = "color" | "bw";
 export type FilmProcess = "c41" | "bw" | "e6";
 
+/**
+ * Everything here was 35mm until Polaroid was added. Format is a hard divide, not a
+ * filter: instant film has no ISO worth comparing, is sold by camera compatibility
+ * rather than by roll, and is priced per shot — so it gets its own page rather than
+ * a row in a list of 35mm stock.
+ */
+export type FilmFormat = "35mm" | "instant";
+
 export type FilmSeed = {
   id: string;
   brand: string;
@@ -15,7 +23,7 @@ export type FilmSeed = {
    * roll — otherwise a guess would put a listing under the wrong variant filter.
    * Never applied to bulk rolls, which have no exposure count.
    */
-  defaultExposures?: 24 | 36;
+  defaultExposures?: 8 | 16 | 24 | 36;
   /**
    * Pack size to assume when a listing's title doesn't state one. For products only
    * ever sold as a fixed bundle, where no title says "3 pack".
@@ -31,11 +39,21 @@ export type FilmSeed = {
    * genuinely common.
    */
   tier?: "core" | "extended";
+  /**
+   * Defaults to `35mm`. Instant film is matched by a different title test, skipped by
+   * the browser-driven stores, and shown on its own page — see `FilmFormat`.
+   */
+  format?: FilmFormat;
 };
 
 /** Films default to `core`, matching the catalogue before tiers existed. */
 export function filmTier(f: Pick<FilmSeed, "tier">): "core" | "extended" {
   return f.tier ?? "core";
+}
+
+/** Films default to 35mm, matching the catalogue before instant film was added. */
+export function filmFormat(f: Pick<FilmSeed, "format">): FilmFormat {
+  return f.format ?? "35mm";
 }
 
 export const filmSeeds: FilmSeed[] = [
@@ -1237,5 +1255,96 @@ export const filmSeeds: FilmSeed[] = [
     process: "bw",
     tier: "extended",
     aliases: ["wolfen np100", "orwo np100"],
+  },
+
+  // --- Instant film (Polaroid) --------------------------------------------
+  //
+  // Sold by camera compatibility, not by speed: a 600 pack carries the battery that
+  // powers the camera, so vintage 600 bodies can only shoot 600, while i-Type bodies
+  // shoot both. That is the axis a buyer actually chooses on, so it is the name.
+  //
+  // ORDER MATTERS. Black & white comes before colour in each family because the
+  // colour seeds carry a "white frame" alias for Beau Photo's
+  // "Polaroid Originals 600 White Frame", which names the border rather than the
+  // emulsion. `films.find()` takes the first match in this array, so a future
+  // "Polaroid Originals 600 B&W White Frame" resolves to black & white rather than
+  // being mis-assigned to colour. Covered by a test.
+  {
+    id: "polaroid-600-bw",
+    brand: "Polaroid",
+    name: "600 Black & White",
+    iso: 640,
+    type: "bw",
+    process: null,
+    format: "instant",
+    defaultExposures: 8,
+    aliases: ["polaroid 600 black white", "polaroid 600 b&w"],
+  },
+  {
+    id: "polaroid-600-color",
+    brand: "Polaroid",
+    name: "600 Colour",
+    iso: 640,
+    type: "color",
+    process: null,
+    format: "instant",
+    defaultExposures: 8,
+    aliases: [
+      "polaroid 600 color",
+      "polaroid 600 colour",
+      "polaroid originals 600 white frame",
+    ],
+  },
+  {
+    id: "polaroid-sx70-bw",
+    brand: "Polaroid",
+    name: "SX-70 Black & White",
+    iso: 160,
+    type: "bw",
+    process: null,
+    format: "instant",
+    defaultExposures: 8,
+    aliases: ["polaroid sx-70 black white", "polaroid sx70 black white", "polaroid sx-70 b&w"],
+  },
+  {
+    id: "polaroid-sx70-color",
+    brand: "Polaroid",
+    name: "SX-70 Colour",
+    iso: 160,
+    type: "color",
+    process: null,
+    format: "instant",
+    defaultExposures: 8,
+    aliases: [
+      "polaroid sx-70 color",
+      "polaroid sx-70 colour",
+      "polaroid sx70 color",
+      "polaroid sx70 colour",
+    ],
+  },
+  // Studio Argentique is the only tracked store carrying i-Type, and every pack of it
+  // was out of stock when this was added — so the page will often show it unstocked
+  // without that being a fault. Aden lists an i-Type *camera* but no i-Type film.
+  {
+    id: "polaroid-itype-bw",
+    brand: "Polaroid",
+    name: "i-Type Black & White",
+    iso: 640,
+    type: "bw",
+    process: null,
+    format: "instant",
+    defaultExposures: 8,
+    aliases: ["polaroid i-type black white", "polaroid i-type b&w", "polaroid itype b&w"],
+  },
+  {
+    id: "polaroid-itype-color",
+    brand: "Polaroid",
+    name: "i-Type Colour",
+    iso: 640,
+    type: "color",
+    process: null,
+    format: "instant",
+    defaultExposures: 8,
+    aliases: ["polaroid i-type color", "polaroid i-type colour", "polaroid itype color"],
   },
 ];

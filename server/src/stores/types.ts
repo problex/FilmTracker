@@ -7,7 +7,7 @@ export type ListingCandidate = {
   currency: "CAD";
   inStock: boolean;
   packSize: number | null;
-  exposures: 24 | 36 | null;
+  exposures: 8 | 16 | 24 | 36 | null;
   isBulk: boolean;
   /** Stock the store itself marks as expired; excluded from headline prices. */
   isExpired: boolean;
