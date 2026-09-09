@@ -14,6 +14,11 @@
   `films.format` column, and `GET /api/prices?format=` defaulting to `35mm` so the main
   list and every existing caller are untouched. Candidate films are narrowed by format
   *before* alias matching, so a Polaroid title can never be assigned to a 35mm film.
+- **Instant offers are ranked by price per shot in the API**, not by ticket price. The
+  top-3 cut runs before the page can sort, and the best value is routinely the most
+  expensive listing — a five-pack at $144.99 is $3.62/shot against $4.00 for a single —
+  so ranking by ticket price dropped every multipack before the page saw it. 35mm still
+  ranks by ticket price; its multipack comparison lives in `/api/deals/multipacks`.
 - Pack maths for instant: 8 shots to a pack, with "Double Pack, 16 Exposures", "2pak",
   "eco 5 pack" and "2x Color - Value Pack" all parsed. Unparsed, a twin pack reads at
   double its true price per shot.
