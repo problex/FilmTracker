@@ -12,6 +12,7 @@ import { buildCorsOptions } from "./corsOrigins.js";
 import { assertAdminTokenConfigured, requireAdmin } from "./api/adminAuth.js";
 import { authRouter } from "./api/auth.js";
 import { followsRouter } from "./api/follows.js";
+import { alertsRouter } from "./api/alerts.js";
 import { attachUser } from "./auth/session.js";
 
 dotenv.config();
@@ -35,6 +36,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRouter);
 app.use("/api/follows", followsRouter);
+app.use("/api/alerts", alertsRouter);
 app.use("/api/films", filmsRouter);
 app.use("/api/prices", pricesRouter);
 app.use("/api/admin", requireAdmin, adminRouter);

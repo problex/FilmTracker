@@ -1,4 +1,5 @@
 import { runScrape } from "./run.js";
+import { runAlerts } from "../alerts/run.js";
 
 function parseHours(raw: string | undefined): number[] {
   const def = "0,12";
@@ -31,9 +32,17 @@ export function startScrapeScheduler() {
 
   const run = () => {
     void runScrape()
-      .then((summary) => {
+      .then(async (summary) => {
         const withErrors = summary.stores.filter((s) => s.errors.length > 0).length;
         console.log(`Scheduled scrape finished (${withErrors}/${summary.stores.length} stores reported errors)`);
+
+        // After the scrape, never inside it. A mail outage or a bad API key must not
+        // be able to mark a good scrape as failed — the health check reads that status.
+        try {
+          await runAlerts();
+        } catch (e) {
+          console.error("Price alerts failed:", e);
+        }
       })
       .catch((e) => console.error("Scheduled scrape failed:", e));
   };

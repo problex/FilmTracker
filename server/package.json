@@ -13,7 +13,8 @@
     "scrape": "tsx src/scripts/scrape.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "discover": "tsx src/scripts/discover.ts"
+    "discover": "tsx src/scripts/discover.ts",
+    "alerts": "tsx src/scripts/alerts.ts"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
