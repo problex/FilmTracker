@@ -3,10 +3,35 @@ import { useAccount } from "./useAccount";
 
 const API_BASE = (import.meta as any).env?.VITE_API_BASE ?? "";
 
-type FilmRow = { filmId: string; brand: string; name: string; format: "35mm" | "instant" };
+type Offer = { priceCadCents: number; storeName: string; packSize: number | null; exposures: number | null };
+type FilmRow = {
+  filmId: string;
+  brand: string;
+  name: string;
+  iso: number | null;
+  format: "35mm" | "instant";
+  offers: Offer[];
+};
 
 function formatCad(cents: number) {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(cents / 100);
+}
+
+/**
+ * Alerts compare instant film per shot, not per pack — see alerts/run.ts. A target set
+ * against the pack price would never fire, so the unit has to be on screen wherever a
+ * target is entered or a price is shown.
+ */
+const SHOTS_PER_PACK = 8;
+
+function unitPriceCents(film: FilmRow, offer: Offer) {
+  if (film.format !== "instant") return offer.priceCadCents;
+  const shots = (offer.exposures ?? SHOTS_PER_PACK) * (offer.packSize ?? 1);
+  return shots > 0 ? offer.priceCadCents / shots : offer.priceCadCents;
+}
+
+function unitLabel(film: FilmRow) {
+  return film.format === "instant" ? "per shot" : "";
 }
 
 export function AccountPage() {
@@ -14,30 +39,32 @@ export function AccountPage() {
   const [address, setAddress] = useState("");
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
-  const [films, setFilms] = useState<FilmRow[]>([]);
+  const [films, setFilms] = useState<Map<string, FilmRow>>(new Map());
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState<string | null>(null);
 
-  // Names for the followed films. Both catalogues, since a follow can be either.
+  // In-stock offers, so "now" means what you could actually pay today. Films with
+  // nothing in stock still come back, with an empty offers list.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const [a, b] = await Promise.all([
-          fetch(`${API_BASE}/api/prices?inStock=false`).then((r) => r.json()),
-          fetch(`${API_BASE}/api/prices?format=instant&inStock=false`).then((r) => r.json()),
+          fetch(`${API_BASE}/api/prices`).then((r) => r.json()),
+          fetch(`${API_BASE}/api/prices?format=instant`).then((r) => r.json()),
         ]);
         if (cancelled) return;
-        setFilms(
-          [...(a.films ?? []), ...(b.films ?? [])].map((f: any) => ({
-            filmId: f.filmId,
-            brand: f.brand,
-            name: f.name,
-            format: f.format ?? "35mm",
-          }))
-        );
+        const rows: FilmRow[] = [...(a.films ?? []), ...(b.films ?? [])].map((f: any) => ({
+          filmId: f.filmId,
+          brand: f.brand,
+          name: f.name,
+          iso: f.iso ?? null,
+          format: f.format ?? "35mm",
+          offers: f.offers ?? [],
+        }));
+        setFilms(new Map(rows.map((f) => [f.filmId, f])));
       } catch {
-        // Names are a nicety; the list still works with ids.
+        // Prices are context, not the point of the page; the list still works without.
       }
     })();
     return () => {
@@ -45,19 +72,31 @@ export function AccountPage() {
     };
   }, []);
 
-  const nameOf = useMemo(() => {
-    const m = new Map(films.map((f) => [f.filmId, f]));
-    return (id: string) => {
-      const f = m.get(id);
-      return f ? `${f.brand} ${f.name}` : id;
-    };
-  }, [films]);
+  const followed = useMemo(() => {
+    const rows = [...account.follows.values()].map((follow) => {
+      const film = films.get(follow.filmId) ?? null;
+      const best = film?.offers[0] ?? null;
+      const nowCents = film && best ? unitPriceCents(film, best) : null;
+      const target = follow.targetPriceCadCents;
+      return {
+        follow,
+        film,
+        best,
+        nowCents,
+        met: target != null && nowCents != null && nowCents <= target,
+      };
+    });
+    // Anything already at or under its target first — that is the reason to open this
+    // page at all. Then the rest by name.
+    return rows.sort((x, y) => {
+      if (x.met !== y.met) return x.met ? -1 : 1;
+      const nx = x.film ? `${x.film.brand} ${x.film.name}` : x.follow.filmId;
+      const ny = y.film ? `${y.film.brand} ${y.film.name}` : y.follow.filmId;
+      return nx.localeCompare(ny);
+    });
+  }, [account.follows, films]);
 
-  const followed = useMemo(
-    () =>
-      [...account.follows.values()].sort((x, y) => nameOf(x.filmId).localeCompare(nameOf(y.filmId))),
-    [account.follows, nameOf]
-  );
+  const metCount = followed.filter((r) => r.met).length;
 
   async function onRequestLink(e: React.FormEvent) {
     e.preventDefault();
@@ -77,8 +116,13 @@ export function AccountPage() {
     if (value != null && (!Number.isFinite(value) || value <= 0)) return;
 
     await account.follow(filmId, value);
+    setDraft((d) => {
+      const next = { ...d };
+      delete next[filmId];
+      return next;
+    });
     setSaved(filmId);
-    window.setTimeout(() => setSaved((s) => (s === filmId ? null : s)), 1500);
+    window.setTimeout(() => setSaved((s) => (s === filmId ? null : s)), 1800);
   }
 
   return (
@@ -90,7 +134,7 @@ export function AccountPage() {
         </div>
         <div className="headerActions">
           <a className="backLink" href="#/">
-            ← 35mm film
+            35mm
           </a>
           <a className="backLink" href="#/polaroid">
             Polaroid
@@ -106,20 +150,28 @@ export function AccountPage() {
       {account.loading && <div className="card muted">Loading…</div>}
 
       {!account.loading && !account.signedIn && (
-        <div className="card">
-          <div className="filmName">Sign in</div>
-          <p className="muted polaroidNote" style={{ padding: 0, border: "none" }}>
-            No password. Enter your email and we’ll send a link that signs you in — it works
-            once and expires in 15 minutes.
+        <div className="signInCard">
+          <div className="signInTitle">Get told when film gets cheaper</div>
+          <p className="signInBlurb">
+            Follow the films you buy and we’ll email you when one drops below your price.
+            Prices are checked twice a day across 10 Canadian stores.
           </p>
+
           {sent ? (
-            <p className="muted">
-              If that address is valid, a sign-in link is on its way. You can close this tab.
-            </p>
+            <div className="signInSent">
+              <div className="signInSentMark">✓</div>
+              <div>
+                <strong>Check your inbox.</strong>
+                <div className="muted signInSentNote">
+                  If that address is valid, a sign-in link is on its way. It works once and
+                  expires in 15 minutes.
+                </div>
+              </div>
+            </div>
           ) : (
-            <form onSubmit={onRequestLink} className="signInRow">
+            <form onSubmit={onRequestLink} className="signInForm">
               <input
-                className="search"
+                className="search signInInput"
                 type="email"
                 required
                 value={address}
@@ -127,9 +179,10 @@ export function AccountPage() {
                 placeholder="you@example.com"
                 aria-label="Email address"
               />
-              <button className="backLink" type="submit" disabled={sending}>
-                {sending ? "Sending…" : "Send link"}
+              <button className="primaryBtn" type="submit" disabled={sending}>
+                {sending ? "Sending…" : "Email me a link"}
               </button>
+              <div className="muted signInHint">No password — we send a one-time link.</div>
             </form>
           )}
         </div>
@@ -137,81 +190,116 @@ export function AccountPage() {
 
       {!account.loading && account.signedIn && (
         <>
-          <div className="card polaroidNote">
-            Signed in as <strong>{account.email}</strong>. You’ll get an email when a film you
-            follow drops below your target price — or falls sharply, if you haven’t set one.
-            Prices are checked twice a day.
+          <div className="accountBar">
+            <div>
+              <span className="muted">Signed in as</span> <strong>{account.email}</strong>
+            </div>
+            <div className="accountStats">
+              <span className="pill">{account.follows.size} followed</span>
+              {metCount > 0 && <span className="pill pillMet">{metCount} at your price</span>}
+            </div>
           </div>
 
-          <div className="card">
-            <div className="filmName">Following ({followed.length})</div>
-            {followed.length === 0 ? (
+          {followed.length === 0 ? (
+            <div className="card emptyState">
+              <div className="emptyMark">☆</div>
+              <div className="emptyTitle">You’re not following anything yet</div>
               <p className="muted">
-                Nothing yet. Use <strong>Follow</strong> on any film in the{" "}
-                <a href="#/">35mm</a> or <a href="#/polaroid">Polaroid</a> lists.
+                Hit <strong>Follow</strong> on any film to start. Set a price and we’ll email
+                you when it drops below it — leave it blank and we’ll tell you about any
+                sharp fall instead.
               </p>
-            ) : (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Film</th>
-                    <th>Alert me under</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {followed.map((f) => (
-                    <tr key={f.filmId}>
-                      <td>
-                        <div className="filmName">{nameOf(f.filmId)}</div>
-                      </td>
-                      <td>
-                        <div className="signInRow">
-                          <input
-                            className="search targetInput"
-                            type="number"
-                            min="1"
-                            step="0.01"
-                            placeholder={
-                              f.targetPriceCadCents == null
-                                ? "any big drop"
-                                : formatCad(f.targetPriceCadCents)
-                            }
-                            value={
-                              draft[f.filmId] ??
-                              (f.targetPriceCadCents == null
-                                ? ""
-                                : (f.targetPriceCadCents / 100).toFixed(2))
-                            }
-                            onChange={(e) =>
-                              setDraft((d) => ({ ...d, [f.filmId]: e.target.value }))
-                            }
-                            aria-label={`Target price for ${nameOf(f.filmId)}`}
-                          />
-                          <button
-                            type="button"
-                            className="backLink"
-                            onClick={() => void saveTarget(f.filmId)}
-                          >
-                            {saved === f.filmId ? "Saved" : "Save"}
-                          </button>
-                        </div>
-                      </td>
-                      <td>
+              <div className="emptyActions">
+                <a className="primaryBtn" href="#/">
+                  Browse 35mm
+                </a>
+                <a className="backLink" href="#/polaroid">
+                  Browse Polaroid
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="followList">
+              {followed.map(({ follow, film, best, nowCents, met }) => {
+                const unit = film ? unitLabel(film) : "";
+                const dirty = draft[follow.filmId] != null;
+                return (
+                  <div className={`followRow${met ? " followRowMet" : ""}`} key={follow.filmId}>
+                    <div className="followMain">
+                      <div className="filmName">
+                        {film ? `${film.brand} ${film.name}` : follow.filmId}
+                        {film?.format === "instant" && (
+                          <span className="pill pillInstant">Polaroid</span>
+                        )}
+                        {met && <span className="pill pillMet">At your price</span>}
+                      </div>
+                      <div className="followNow muted">
+                        {nowCents != null && best ? (
+                          <>
+                            now <span className="followNowPrice">{formatCad(nowCents)}</span>
+                            {unit ? ` ${unit}` : ""} at {best.storeName}
+                          </>
+                        ) : (
+                          "no in-stock offers right now"
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="followTarget">
+                      <label className="followTargetLabel muted" htmlFor={`t-${follow.filmId}`}>
+                        Alert me under{unit ? ` (${unit})` : ""}
+                      </label>
+                      <div className="followTargetRow">
+                        <span className="followCurrency">$</span>
+                        <input
+                          id={`t-${follow.filmId}`}
+                          className="search targetInput"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          placeholder="any big drop"
+                          value={
+                            draft[follow.filmId] ??
+                            (follow.targetPriceCadCents == null
+                              ? ""
+                              : (follow.targetPriceCadCents / 100).toFixed(2))
+                          }
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, [follow.filmId]: e.target.value }))
+                          }
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void saveTarget(follow.filmId);
+                          }}
+                        />
                         <button
                           type="button"
-                          className="backLink"
-                          onClick={() => void account.unfollow(f.filmId)}
+                          className={`primaryBtn saveBtn${dirty ? "" : " saveBtnIdle"}`}
+                          onClick={() => void saveTarget(follow.filmId)}
                         >
-                          Unfollow
+                          {saved === follow.filmId ? "Saved ✓" : "Save"}
                         </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="removeBtn"
+                      title="Stop following"
+                      aria-label={`Stop following ${film ? film.name : follow.filmId}`}
+                      onClick={() => void account.unfollow(follow.filmId)}
+                    >
+                      ×
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <p className="muted accountFooter">
+            Checked twice a day. Emails come from info@problex.com and link straight to the
+            store — every one has an unsubscribe link.
+          </p>
         </>
       )}
     </div>

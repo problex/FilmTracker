@@ -840,14 +840,277 @@ th {
   opacity: 0.75;
 }
 
-.signInRow {
+/* Sign-in ---------------------------------------------------------------- */
+
+.signInCard {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent), var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  max-width: 460px;
+  margin: 32px auto;
+}
+
+.signInTitle {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+}
+
+.signInBlurb {
+  margin: 10px 0 20px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.signInForm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.signInInput {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.signInHint {
+  flex-basis: 100%;
+  font-size: 12px;
+}
+
+.signInSent {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  font-size: 14px;
+}
+
+.signInSentMark {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(52, 211, 153, 0.16);
+  color: #34d399;
+  font-weight: 700;
+}
+
+.signInSentNote {
+  margin-top: 4px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Buttons ---------------------------------------------------------------- */
+
+.primaryBtn {
+  border: 1px solid rgba(96, 165, 250, 0.5);
+  background: rgba(96, 165, 250, 0.16);
+  color: #bfdbfe;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.primaryBtn:hover {
+  background: rgba(96, 165, 250, 0.26);
+  color: #e5edff;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.saveBtnIdle {
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+}
+
+/* Account header --------------------------------------------------------- */
+
+.accountBar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+
+.accountStats {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pill.pillMet {
+  background: rgba(52, 211, 153, 0.16);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+/* Followed films --------------------------------------------------------- */
+
+.followList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.followRow {
+  position: relative;
+  display: flex;
+  gap: 16px;
   align-items: center;
   flex-wrap: wrap;
-  margin-top: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent), var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+/* A film already at its price is the reason to open this page. */
+.followRowMet {
+  border-color: rgba(52, 211, 153, 0.35);
+  background: linear-gradient(180deg, rgba(52, 211, 153, 0.07), transparent), var(--card);
+}
+
+.followMain {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.followNow {
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.followNowPrice {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.followRowMet .followNowPrice {
+  color: #34d399;
+}
+
+.followTarget {
+  flex: 0 1 auto;
+}
+
+.followTargetLabel {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-bottom: 5px;
+}
+
+.followTargetRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.followCurrency {
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .targetInput {
-  max-width: 130px;
+  max-width: 110px;
+}
+
+.saveBtn {
+  padding: 7px 12px;
+}
+
+.removeBtn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.removeBtn:hover {
+  border-color: rgba(248, 113, 113, 0.5);
+  color: #f87171;
+}
+
+/* Empty state ------------------------------------------------------------ */
+
+.emptyState {
+  text-align: center;
+  padding: 36px 20px;
+}
+
+.emptyMark {
+  font-size: 30px;
+  color: var(--muted);
+  opacity: 0.7;
+}
+
+.emptyTitle {
+  margin-top: 10px;
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.emptyState p {
+  max-width: 420px;
+  margin: 8px auto 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.emptyActions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+
+.accountFooter {
+  margin-top: 18px;
+  font-size: 12px;
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .followRow {
+    align-items: flex-start;
+  }
+
+  .followTarget {
+    flex: 1 1 100%;
+  }
+
+  .removeBtn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+  }
 }
