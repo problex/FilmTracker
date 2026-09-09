@@ -82,9 +82,13 @@ export async function fetchWooProduct(baseUrl: string, id: number): Promise<WooP
 }
 
 export async function fetchWooCatalog(baseUrl: string, maxPages = MAX_PAGES): Promise<WooProduct[]> {
+  // A page count of 0 skips the loop entirely, returning an empty catalogue that the
+  // caller cannot tell apart from a store with nothing in stock — the silent-zero
+  // failure this project keeps hitting. Fall back to the shared limit instead.
+  const pageLimit = Number.isFinite(maxPages) && maxPages > 0 ? maxPages : MAX_PAGES;
   const out: WooProduct[] = [];
 
-  for (let page = 1; page <= maxPages; page += 1) {
+  for (let page = 1; page <= pageLimit; page += 1) {
     const u = new URL("/wp-json/wc/store/v1/products", baseUrl);
     u.searchParams.set("per_page", String(PAGE_SIZE));
     u.searchParams.set("page", String(page));
@@ -143,7 +147,10 @@ export function createWooStoreApiAdapter(params: {
    * their own classifier (see `filmWarehouse.ts`).
    */
   is35mm?: (p: WooProduct, title: string) => boolean;
-  /** Pages of 100 to walk; raise for large catalogues. */
+  /**
+   * Pages of 100 to walk; raise for large catalogues. Omit to use the shared limit —
+   * a non-positive value is treated as "unset" rather than "fetch nothing".
+   */
   maxPages?: number;
 }): StoreAdapter {
   const { storeId, storeName, baseUrl } = params;

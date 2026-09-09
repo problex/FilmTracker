@@ -450,7 +450,7 @@ First run suggests the catalogue could roughly double: Adox, AgfaPhoto APX, Ferr
 P30/P33, Film Washi, Flic Film Vision3 respools and Cine Colour, Reflx Lab, Revolog,
 Rollei RPX/Retro/Superpan, Shanghai GP3, Ultrafine Xtreme.
 
-### 4d. Scheduled repair agent — out-of-app, PR only ⚠️ built, untested end to end
+### 4d. Scheduled repair agent — out-of-app, PR only ✅ tested end to end 2026-09-08
 
 `scripts/repair-agent.sh` runs `scripts/health-check.sh`, and when it reports an
 **error** (warnings alone are ignored) asks Claude Code to investigate on a fresh
@@ -468,10 +468,33 @@ changing, because adapters fail silently; ship a regression test using the real
 listing title; never widen an alias to force a match; and open no PR at all rather
 than guess, because a wrong fix is worse than an open issue.
 
-**What is verified:** the no-op path — a healthy system exits 0, creates no branch,
-starts no agent. **What is not:** the repair path itself has never been exercised,
-because doing so needs a genuine failure. Run it with `--force` against a real
-breakage before trusting it unattended.
+**Verified 2026-09-08 against a staged failure.** A throwaway clone carried a
+committed `maxPages: 0` on FilmWarehouse — plausible as a refactor, and silent:
+`params.maxPages ?? MAX_PAGES` keeps a 0 because it is not nullish, and
+`for (page = 1; page <= 0)` never runs, so the store fetched nothing and reported an
+empty catalogue as a clean scrape. A local endpoint served a health payload with the
+resulting `no_listings` error and the script ran **without** `--force`.
+
+It detected the error, branched, diagnosed the exact cause, confirmed against the live
+Store API that the store had not changed, fixed it so the bad state cannot be
+expressed at all rather than merely reverting the value, wrote a regression test, and
+opened a PR. It touched no alias, merged nothing, deployed nothing, and left the
+database alone. Two behaviours worth keeping:
+
+- It reported prominently that it could not run the tests, rather than implying the
+  fix was verified.
+- It noticed the staged health payload was not self-consistent with the code that
+  would have produced it — `lastRun.status: "success"` where `finishScrapeRun()` would
+  write `partial`, a `durationMs` impossible for an adapter making zero requests — and
+  declined to invent a second root cause on evidence it did not trust.
+
+**What the test exposed:** the prompt told the agent to run `npm test`, but this
+project is developed through Docker and the host has no Node toolchain at all, so that
+step could never succeed. Fixed by `scripts/run-tests.sh`, which prefers a local `npm`
+and otherwise runs the same suite in a container; the agent is granted that wrapper
+instead of bare `npm`, and the script now refuses to start an investigation it could
+not verify. The `--bare` authentication concern above did not materialise on CLI
+2.1.266 — the subscription login worked with no `ANTHROPIC_API_KEY`.
 
 ---
 

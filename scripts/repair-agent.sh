@@ -28,8 +28,19 @@ BASE="${FILMTRACKER_URL:-http://192.168.0.9:4000}"
 FORCE=0
 [[ "${1:-}" == "--force" ]] && FORCE=1
 
-if ! command -v claude >/dev/null 2>&1; then
-  echo "claude CLI not found on PATH" >&2
+for tool in claude jq curl; do
+  if ! command -v "$tool" >/dev/null 2>&1; then
+    echo "$tool not found on PATH" >&2
+    exit 2
+  fi
+done
+
+# The agent must verify a fix before opening a PR. This box is developed through
+# Docker and may have no Node at all, so confirm *something* can run the suite
+# before starting an investigation that would have to end in an unverified PR.
+if ! command -v npm >/dev/null 2>&1 && ! command -v docker >/dev/null 2>&1; then
+  echo "cannot run tests here: neither npm nor docker is on PATH" >&2
+  echo "the agent could not verify a fix, so it would only be able to guess" >&2
   exit 2
 fi
 
@@ -63,9 +74,13 @@ The health report is below. Work through it in this order:
    stock — so confirm what is actually happening against the live store rather than
    inferring it from the code.
 3. Fix the cause, not the symptom.
-4. Run `npm test` in server/. Every fix to a parsing or matching bug must come with a
-   regression test using the real listing title that exposed it; that is the
-   convention in server/src/stores/shared.test.ts.
+4. Run `scripts/run-tests.sh` from the repo root — use it rather than calling `npm`
+   directly, because this machine may have no Node toolchain and the script falls
+   back to running the same suite in a container. Every fix to a parsing or matching
+   bug must come with a regression test using the real listing title that exposed it;
+   that is the convention in server/src/stores/shared.test.ts. A test that cannot
+   fail is worth nothing, so check that your new test fails against the unfixed code
+   before you rely on it.
 5. Commit on the current branch and open a PR with `gh pr create`, explaining what
    failed, how you reproduced it, and what you changed.
 
@@ -84,7 +99,7 @@ EOP
 printf '%s\n\nHealth report:\n%s\n' "$PROMPT" "$health" | claude -p \
   --permission-mode acceptEdits \
   --permission-prompts none \
-  --allowedTools "Read,Edit,Write,Grep,Glob,Bash(npm test*),Bash(npx *),Bash(git *),Bash(gh pr *),Bash(curl *),WebFetch" \
+  --allowedTools "Read,Edit,Write,Grep,Glob,Bash(scripts/run-tests.sh*),Bash(./scripts/run-tests.sh*),Bash(npm test*),Bash(npx *),Bash(git *),Bash(gh pr *),Bash(curl *),WebFetch" \
   --output-format json \
   | jq -r '.result // .'
 

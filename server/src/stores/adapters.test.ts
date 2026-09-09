@@ -36,6 +36,7 @@ vi.mock("./shared.js", async (importOriginal) => {
 const { createShopifyAdapter } = await import("./shopify.js");
 const { createWooStoreApiAdapter } = await import("./wooStoreApi.js");
 const { beauPhotoAdapter } = await import("./beauPhoto.js");
+const { filmWarehouseAdapter } = await import("./filmWarehouse.js");
 
 describe("Shopify bulk adapter", () => {
   // Each suite installs its own implementation; no global reset needed.
@@ -138,6 +139,29 @@ describe("WooCommerce Store API adapter", () => {
     expect(shortDated!.packSize).toBe(3);
     expect(shortDated!.expiryLabel).toBe("12/2026");
     expect(shortDated!.exposures).toBe(36);
+  });
+
+  /**
+   * The shipped adapter, not a locally rebuilt one.
+   *
+   * Every other case in this file constructs its own adapter and passes no page
+   * limit, so none of them touch the exported store configs. A bad `maxPages` there
+   * is invisible to this suite: `params.maxPages ?? MAX_PAGES` keeps a 0 (it is not
+   * nullish) and `for (page = 1; page <= 0)` never runs, so the store would fetch
+   * nothing and report an empty catalogue as a clean scrape — listings to 0 with
+   * errorCount 0, the silent-zero failure described in PLAN.md.
+   */
+  it("returns listings through the exported FilmWarehouse adapter", async () => {
+    const byFilm = await filmWarehouseAdapter.fetchCandidatesForAllFilms!(filmSeeds);
+    const all = [...byFilm.values()].flat();
+
+    expect(all.length, "FilmWarehouse fetched an empty catalogue").toBeGreaterThan(0);
+    expect(byFilm.get("kentmere-pan-100")?.map((c) => c.titleRaw)).toContain(
+      "Kentmere Pan 100 35mm"
+    );
+    expect(byFilm.get("kentmere-pan-400")?.map((c) => c.titleRaw)).toContain(
+      "Kentmere Pan 400 35mm"
+    );
   });
 });
 

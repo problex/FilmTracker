@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Operations
+
+- **The repair agent's repair path is tested.** Run end to end against a staged
+  silent-zero failure in a throwaway clone: it detected the error without `--force`,
+  reproduced against the live store before changing anything, fixed the cause, wrote a
+  regression test and opened a PR, without touching an alias, the database or a
+  deploy. See PLAN.md §4d.
+- **`scripts/run-tests.sh`** runs the server suite wherever Node happens to live —
+  local `npm` if present, otherwise the same suite in a container. The repair agent was
+  being told to run `npm test` on a host developed entirely through Docker, where no
+  Node toolchain exists, so it could never verify a fix; it is now given this wrapper,
+  and `repair-agent.sh` refuses to start an investigation it could not verify.
+
+### Scraping
+
+- **A WooCommerce page limit of 0 no longer means "fetch nothing".** `fetchWooCatalog`
+  treats a non-positive limit as unset, so a store cannot be configured into returning
+  an empty catalogue that reads as a clean scrape. Covered by a test that runs the
+  *exported* FilmWarehouse adapter — every existing adapter test builds its own
+  adapter and passes no page limit, so none of them exercised a shipped store config.
+
 ## v1.0.0 — 2026-09-06
 
 First tagged release. Tracks **115 films across 10 Canadian stores**, with roughly
