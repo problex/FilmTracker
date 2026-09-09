@@ -561,6 +561,86 @@ catalogue JSON, the same reason `torontofilmlab.com` was rejected.
 
 ---
 
+# Price alerts (accounts + email), added 2026-09-09
+
+Until now the site was pull-only: you learned a price had dropped by opening the page.
+Now someone can follow films and be emailed when one gets cheaper. This is the first
+feature that needs to know *who* is asking, so it brought the first identity layer with
+it — `users`, `login_tokens`, `sessions`, `film_follows`, `alert_state`,
+`alert_deliveries` and `film_best_price` (migrations 007 and 008).
+
+Live at `https://filmtracker.problex.com`, sign-in at `#/account`.
+
+## Found first: the admin API was open to the internet
+
+The site is published through a reverse proxy on 443, and the proxy forwards `/api/*`
+through the web container — so every API route was public, including `/api/admin/*`.
+`POST /api/admin/scrape` runs a twenty-minute scrape against ten stores, unauthenticated.
+Anyone could have repeated it to exhaust the NAS and get the scraper IP-banned.
+
+Closed with a shared-token guard (`X-Admin-Token`, constant-time compare) that **fails
+startup when `ADMIN_TOKEN` is unset**, rather than defaulting to open. A shared token
+rather than a user session on purpose: these are operator endpoints called by cron, and
+a signed-in reader should not be able to trigger a scrape.
+
+`DEPLOY.md` had claimed the ports were LAN-only and unreachable from the internet. They
+are not, and that is corrected.
+
+## How alerting decides
+
+`alerts/evaluate.ts` is a pure function with its own tests, because both failure modes
+are silent: too eager and the mail becomes a filter rule within a week, too shy and the
+feature does nothing. With 121 films scraped twice daily, "any drop" was never viable.
+
+- A **target price** per follow ("under $18"), which is how film actually gets bought,
+  plus a **percentage rule** for follows with no number set.
+- Nothing repeats while a price sits still; a further fall does alert.
+- **Re-arming is part of the decision**, not something the caller infers — once a price
+  climbs back out of range the old figure is forgotten so the next fall is reported.
+- **Nothing fires on a film's first sighting.** Without that guard the first run after
+  deploy mails every follower about everything, because a missing baseline reads as a
+  fall from infinity.
+
+Prices compare **per comparable unit** — ticket price for 35mm, per shot for instant —
+reusing the measure `api/prices.ts` orders by. Otherwise a Polaroid five-pack restock
+reads as a price rise.
+
+Runs after each scrape, never inside it: a mail outage must not mark a good scrape as
+failed, since the health check reads that status.
+
+## Mail goes through Microsoft 365, not a mail service
+
+Sending is behind a `Mailer` interface: Graph if the tenant is configured, else Resend,
+else console. Microsoft Graph won on DNS. `problex.com` sends business mail through
+Exchange Online with an SPF record ending in `-all`; a third-party sender would have
+meant either a subdomain or editing that live record, where a mistake takes down company
+email. Graph needs no DNS at all — SPF and DKIM are already correct.
+
+App-only client credentials, no dependency (two `fetch` calls), token cached for its
+hour, one refresh-and-retry on a 401, and `saveToSentItems: false`.
+
+**The `Mail.Send` application permission lets the app send as any mailbox in the
+tenant**, so the registration must be restricted to the sending mailbox with an Exchange
+application access policy. That restriction is part of the setup, not an optional extra
+— see `DEPLOY.md`.
+
+Client secrets expire in 12–24 months and alerts simply stop when they do; the symptom
+is `Graph token request failed: 401`.
+
+## Known gaps
+
+- **The SQLite dev path does not work, and predates this.** `better-sqlite3` rejects
+  multi-statement SQL, so `scripts/migrate.ts` fails on `001_init.sql` and
+  `migrations_sqlite/` cannot be applied. Everything here was verified against real
+  Postgres instead. Either split statements in the migrator or drop the SQLite path.
+- Rate limiting on `request-link` is in memory, so it resets when the container
+  restarts. Honest for one container; wrong the moment there are two.
+- **Browser push was planned and dropped.** Email through the tenant covers the need,
+  and push would add a dependency, a service worker and a subscription lifecycle for the
+  same notification.
+
+---
+
 ## Milestones
 1. **Scaffold app + DB schema**
    - Monorepo, Postgres, migrations, API skeleton, minimal UI
@@ -579,7 +659,9 @@ catalogue JSON, the same reason `torontofilmlab.com` was rejected.
    - **Inline film detail** in the main table (accordion row under the selected film; no separate detail block above the list)
    - Scheduled scrapes + LAN / reverse-proxy deployment settings (see above)
 6. **Enhancements (v1.5+ backlog)**
-   - optional per-roll normalization, alerts, richer history (e.g. per-store lines)
+   - ✅ **Price alerts** — accounts, followed films and email; see above
+   - ✅ **Per-unit normalization** — per shot for instant, and the measure alerts compare on
+   - richer history (e.g. per-store lines)
 
 ## Definition of done (v1)
 - For each film in the curated catalog, the UI shows **up to 3 in-stock CAD offers** from the 10 stores above, with working links and last-checked time.
