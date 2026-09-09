@@ -184,8 +184,13 @@ export function PolaroidPage() {
                   <td>
                     <div className="offers">
                       {f.offers.length === 0 ? (
+                        // Two different facts, and conflating them misleads: i-Type is
+                        // carried by Studio Argentique but is routinely out of stock,
+                        // which is not the same as no Canadian store selling it.
                         <span className="muted">
-                          Not stocked by any tracked Canadian store
+                          {hideOutOfStock
+                            ? "None in stock right now — untick “In stock only” to see prices"
+                            : "Not stocked by any tracked Canadian store"}
                         </span>
                       ) : (
                         f.offers.map((o) => (
