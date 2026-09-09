@@ -783,6 +783,12 @@ th {
   padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
+  /* This class is used on <button> as well as <a>. A button does not inherit the page
+     font and defaults to a light background, so "Sign out" rendered as a filled white
+     button next to the link-styled chips. */
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .backLink:hover {
