@@ -19,13 +19,15 @@ The app runs on the Synology NAS at `192.168.0.9` via Docker Compose
   `https://github.com/problex/FilmTracker.git`), plus a `.env` (gitignored,
   never committed) holding `POSTGRES_PASSWORD` and `POSTGRES_HOST_PORT=5433`
   (host port 5432 is already taken by something else on the NAS).
+- Key-based SSH is set up from the dev machine, so deploys need no password
+  (see [SSH key access](#ssh-key-access) below).
 
 ## Deploying a new version
 
 Push your changes to GitHub first (`git push origin main`), then:
 
 ```bash
-ssh problex@192.168.0.9
+ssh nas
 cd /volume1/docker/filmtracker
 git pull origin main
 
@@ -47,6 +49,56 @@ crash but isn't. Wait for readiness first:
 ```bash
 until curl -sf http://192.168.0.9:4000/api/films >/dev/null; do sleep 2; done
 ```
+
+## SSH key access
+
+Deploys authenticate with a dedicated key, so no step above prompts for a
+password. On the dev machine:
+
+- `~/.ssh/filmtracker_nas` — ed25519, **no passphrase** (that is what lets
+  unattended deploys run). Anything that can read this file has `problex` on
+  the NAS; acceptable only because the NAS is LAN-only.
+- `~/.ssh/config` points both `nas` and `192.168.0.9` at it:
+
+  ```
+  Host nas 192.168.0.9
+      HostName 192.168.0.9
+      User problex
+      IdentityFile ~/.ssh/filmtracker_nas
+      IdentitiesOnly yes
+  ```
+
+  `IdentitiesOnly yes` matters: it stops ssh from consulting an agent. This
+  machine's `SSH_AUTH_SOCK` points at a stale socket and the live gcr agent
+  holds no identities, so agent-based auth silently fails.
+
+### Setting this up again (new machine, or rotating the key)
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/filmtracker_nas -N '' -C 'filmtracker-deploy'
+ssh-copy-id -i ~/.ssh/filmtracker_nas.pub problex@192.168.0.9   # asks for the password
+```
+
+**`ssh-copy-id` reporting success does not mean key auth works.** DSM's sshd
+rejects keys whenever the home directory or `.ssh` is group-writable, and fails
+with a plain `Permission denied (publickey,password)` that looks identical to a
+missing key. Fix the permissions over a password login:
+
+```bash
+ssh problex@192.168.0.9 'chmod 700 ~ ~/.ssh && chmod 600 ~/.ssh/authorized_keys'
+```
+
+Then verify — this must succeed without a prompt:
+
+```bash
+ssh -o BatchMode=yes nas 'hostname'                    # -> PROBNAS05
+ssh -o BatchMode=yes nas 'sudo -n /volume1/@appstore/ContainerManager/usr/bin/docker ps'
+```
+
+If it still fails, `ssh -vv nas` shows whether the key is even offered; an
+`Offering public key: ...filmtracker_nas` line followed by a denial means the
+server rejected it (permissions or a missing `authorized_keys` entry), not that
+the client picked the wrong key.
 
 ## Useful commands (run on the NAS, with `DOCKER` set as above)
 
