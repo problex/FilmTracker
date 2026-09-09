@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useAccount } from "./useAccount";
+import { FollowButton } from "./FollowButton";
 
 type Offer = {
   storeId: string;
@@ -74,6 +76,7 @@ function cameraFit(filmId: string) {
 }
 
 export function PolaroidPage() {
+  const account = useAccount();
   const [films, setFilms] = useState<InstantFilm[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hideOutOfStock, setHideOutOfStock] = useState(true);
@@ -137,6 +140,9 @@ export function PolaroidPage() {
           <a className="backLink" href="#/">
             ← 35mm film
           </a>
+          <a className="backLink" href="#/account" title="Price alerts">
+            {account.signedIn ? "★ Alerts" : "Sign in"}
+          </a>
           <label className="toggle" title="Hide out of stock offers">
             <input
               type="checkbox"
@@ -177,6 +183,7 @@ export function PolaroidPage() {
                       {f.iso ? <span className="pill">ISO {f.iso}</span> : null}
                     </div>
                     <span className="pill subtle">{f.type === "bw" ? "B&W" : "Colour"}</span>
+                    <FollowButton account={account} filmId={f.filmId} />
                   </td>
                   <td>
                     <span className="muted">{cameraFit(f.filmId) ?? "—"}</span>

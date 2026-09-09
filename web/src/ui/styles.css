@@ -807,3 +807,47 @@ th {
   margin-top: 12px;
   font-size: 12px;
 }
+
+/* --- Accounts and price alerts ------------------------------------------- */
+
+.followBtn {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: transparent;
+  color: var(--muted, #9ca3af);
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.6;
+}
+
+.followBtn:hover {
+  border-color: rgba(255, 255, 255, 0.32);
+  color: #e5e7eb;
+}
+
+.followBtnOn {
+  border-color: rgba(255, 209, 102, 0.45);
+  background: rgba(255, 209, 102, 0.14);
+  color: #ffd166;
+}
+
+.followBtnMuted {
+  opacity: 0.75;
+}
+
+.signInRow {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.targetInput {
+  max-width: 130px;
+}

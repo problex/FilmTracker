@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { PriceHistoryChart, type PriceHistoryPoint } from "./PriceHistoryChart";
+import { useAccount } from "./useAccount";
+import { FollowButton } from "./FollowButton";
 
 type Offer = {
   storeId: string;
@@ -117,6 +119,7 @@ type FilmOffersResponse = {
 };
 
 export function App() {
+  const account = useAccount();
   const [films, setFilms] = useState<FilmWithTopOffers[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [variant, setVariant] = useState<Variant>("any");
@@ -256,6 +259,9 @@ export function App() {
         <div className="headerActions">
           <a className="backLink" href="#/polaroid">
             Polaroid →
+          </a>
+          <a className="backLink" href="#/account" title="Price alerts">
+            {account.signedIn ? "★ Alerts" : "Sign in"}
           </a>
           <div className="searchWrap">
             <input
@@ -451,6 +457,7 @@ export function App() {
                         {f.brand} {f.name}
                         {f.iso ? <span className="pill">ISO {f.iso}</span> : null}
                       </div>
+                      <FollowButton account={account} filmId={f.filmId} />
                     </td>
                     <td>
                       <span className="pill">{f.type === "bw" ? "B&W" : "Color"}</span>
