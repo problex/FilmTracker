@@ -59,6 +59,25 @@ pricesRouter.get("/", async (req, res) => {
     if ((f.format === "instant" ? "instant" : "35mm") !== format) continue;
     if (filmType !== "any" && f.type !== filmType) continue;
 
+    /**
+     * Instant film ranks by price per shot, not by ticket price.
+     *
+     * A pack is 8 shots and a multipack multiplies that, so the best value is
+     * routinely the most expensive listing — Studio Argentique's five-pack is $144.99
+     * and $3.62/shot against $31.99 and $4.00/shot for a single. Ranking those three
+     * by ticket price drops every multipack before the page can rank them, which
+     * would leave the page sorting by per-shot price over a set already filtered by a
+     * different measure, and quietly hide the actual best deal.
+     *
+     * 35mm keeps ordering by ticket price: its multipack comparison lives in
+     * /api/deals/multipacks, and changing it here would change the main list.
+     */
+    const orderBy =
+      f.format === "instant"
+        ? `latest.price_cad_cents * 1.0
+             / (COALESCE(l.exposures, 8) * COALESCE(NULLIF(l.pack_size, 0), 1)) ASC`
+        : "latest.price_cad_cents ASC";
+
     // Latest snapshot per listing, then top 3 cheapest.
     const seenSinceSql =
       db.dialect === "postgres"
@@ -117,7 +136,7 @@ pricesRouter.get("/", async (req, res) => {
           ($3 = '36' AND l.exposures = 36 AND (l.pack_size IS NULL OR l.pack_size <= 1) AND l.is_bulk = FALSE) OR
           ($3 = '24' AND l.exposures = 24 AND (l.pack_size IS NULL OR l.pack_size <= 1) AND l.is_bulk = FALSE)
         )
-      ORDER BY latest.price_cad_cents ASC
+      ORDER BY ${orderBy}
       LIMIT 3
       `,
       [f.id, inStock, variant]
