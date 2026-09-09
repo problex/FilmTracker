@@ -132,6 +132,52 @@ sudo -n $DOCKER compose down
 - If a future host port ever conflicts, override it in the NAS's `.env`
   (see `.env.example` for the available `POSTGRES_HOST_PORT` variable).
 
+## Email (sign-in links and price alerts)
+
+Mail goes out through **Microsoft Graph**, as a mailbox in the M365 tenant that already
+handles this domain. That choice is mostly about DNS: Exchange Online is already
+authorised by `problex.com`'s SPF and signs with M365's DKIM, so nothing needs adding.
+The alternative meant editing a live SPF record ending in `-all`, where a mistake takes
+down business email.
+
+With none of the variables below set, the server **logs emails instead of sending
+them**. That is the intended default for dev, and it also means a sign-in link can be
+recovered from the container logs if mail is ever broken:
+
+```bash
+sudo -n $DOCKER logs filmtracker-server-1 --tail 60 | grep callback
+```
+
+### One-time setup
+
+1. **Entra ID → App registrations → New registration.** Note the *Directory (tenant) ID*
+   and *Application (client) ID*.
+2. **API permissions → Microsoft Graph → Application permissions → `Mail.Send`**, then
+   *Grant admin consent*. Application, not delegated: there is no signed-in user at
+   midnight when the scrape finishes.
+3. **Certificates & secrets → New client secret.** This is `GRAPH_CLIENT_SECRET`.
+4. **Restrict the app to one mailbox.** Not optional — `Mail.Send` as an application
+   permission otherwise lets this app send as *any* mailbox in the tenant, and the
+   secret lives in a `.env` on the NAS. In Exchange Online PowerShell:
+
+   ```powershell
+   New-ApplicationAccessPolicy -AppId <client-id> `
+     -PolicyScopeGroupId filmtracker@problex.com `
+     -AccessRight RestrictAccess `
+     -Description "FilmTracker price alerts"
+   ```
+
+   Newer tenants can use *RBAC for Applications* in the Exchange admin centre instead.
+5. Put `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET` and `GRAPH_SENDER`
+   in the NAS `.env`, then redeploy.
+
+Confirm which transport is live from the startup log — it prints
+`Mailer: microsoft-graph (as ...)`, `Mailer: resend`, or `Mailer: console`.
+
+**The client secret expires**, typically in 12-24 months, and alerts simply stop when it
+does. The symptom is `Graph token request failed: 401` in the logs. Certificate
+credentials avoid the expiry entirely if that becomes annoying.
+
 ## Monitoring
 
 `scripts/health-check.sh` reports scrape health from `GET /api/stores/health`. It exits

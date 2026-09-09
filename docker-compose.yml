@@ -31,8 +31,15 @@ services:
       # Public origin, used for sign-in links, unsubscribe links and the session
       # cookie's Secure flag. Getting this wrong mails people links that do not work.
       PUBLIC_BASE_URL: ${PUBLIC_BASE_URL:-http://localhost:5173}
-      # Without a key the server prints emails to the log instead of sending them,
-      # which is the right default: no key, no accidental mail to a real person.
+      # Mail. Microsoft Graph is preferred and takes priority when configured: it sends
+      # through the Exchange Online tenant that already handles this domain, so SPF and
+      # DKIM are already right and no DNS records are needed.
+      GRAPH_TENANT_ID: ${GRAPH_TENANT_ID:-}
+      GRAPH_CLIENT_ID: ${GRAPH_CLIENT_ID:-}
+      GRAPH_CLIENT_SECRET: ${GRAPH_CLIENT_SECRET:-}
+      GRAPH_SENDER: ${GRAPH_SENDER:-}
+      # Resend is the fallback. With neither configured the server prints emails to the
+      # log instead of sending them — no credentials, no accidental mail to a real person.
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       ALERT_FROM_EMAIL: ${ALERT_FROM_EMAIL:-}
       ALERT_DROP_PERCENT: ${ALERT_DROP_PERCENT:-10}
