@@ -24,7 +24,10 @@ services:
       DATABASE_URL: postgres://filmtracker:${POSTGRES_PASSWORD:-filmtracker}@db:5432/filmtracker
       PORT: 4000
       LISTEN_HOST: 0.0.0.0
-      WEB_ORIGIN: http://localhost:5173
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:5173}
+      # Required: /api/admin/* is reachable from the internet through the proxy.
+      # Compose fails here rather than starting an API with those routes unguarded.
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?set ADMIN_TOKEN in .env - see .env.example}
     depends_on:
       db:
         condition: service_healthy

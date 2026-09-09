@@ -109,8 +109,8 @@ sudo -n $DOCKER logs filmtracker-server-1 --tail 50 -f
 # Status
 sudo -n $DOCKER ps --filter name=filmtracker
 
-# Trigger an on-demand scrape
-curl -X POST http://192.168.0.9:4000/api/admin/scrape
+# Trigger an on-demand scrape (admin routes need the token from the NAS .env)
+curl -X POST -H "X-Admin-Token: $ADMIN_TOKEN" http://192.168.0.9:4000/api/admin/scrape
 
 # Restart without rebuilding
 sudo -n $DOCKER compose restart
@@ -121,8 +121,11 @@ sudo -n $DOCKER compose down
 
 ## Notes
 
-- The db, server, and web ports (5433/4000/5173) are only reachable on the
-  LAN, not the internet.
+- The site is published to the internet at **https://filmtracker.problex.com** through
+  a reverse proxy on 443. The db, server and web ports themselves (5433/4000/5173) are
+  only bound on the LAN, but the proxy forwards `/api/*` through the web container, so
+  **every API route is publicly reachable** — including `/api/admin/*`, which is why
+  `ADMIN_TOKEN` is required and the server will not start without it.
 - Postgres data lives in the named volume `filmtracker_filmtracker_pg` —
   `docker compose down` does not delete it, but `docker compose down -v`
   would. Never run that on the NAS without a backup.
