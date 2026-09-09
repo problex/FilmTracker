@@ -31,6 +31,6 @@ export const filmWarehouseAdapter = createWooStoreApiAdapter({
   storeName: "FilmWarehouse",
   baseUrl: "https://filmwarehouse.ca",
   is35mm,
-  // 0 = fall back to the shared page limit (~232 products over 12 pages).
-  maxPages: 0,
+  // ~232 products, so the shared 12-page limit covers the catalogue with room to
+  // spare. Omitted rather than set, so there is one page limit to keep current.
 });
