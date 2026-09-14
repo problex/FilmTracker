@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { useAccount } from "./useAccount";
 import { FollowButton } from "./FollowButton";
+import { PriceHistoryChart, type PriceHistoryPoint } from "./PriceHistoryChart";
 
 type Offer = {
   storeId: string;
@@ -80,6 +81,36 @@ export function PolaroidPage() {
   const [films, setFilms] = useState<InstantFilm[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hideOutOfStock, setHideOutOfStock] = useState(true);
+  const [selectedFilmId, setSelectedFilmId] = useState<string | null>(null);
+  const [history, setHistory] = useState<PriceHistoryPoint[] | null>(null);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // The API reports instant film history per shot, matching the figure the table leads on.
+  useEffect(() => {
+    setHistory(null);
+    setHistoryError(null);
+    if (!selectedFilmId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const q = new URLSearchParams({ inStock: hideOutOfStock ? "true" : "false" });
+        const res = await fetch(
+          `${API_BASE}/api/films/${encodeURIComponent(selectedFilmId)}/price-history?${q}`
+        );
+        if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+        const body = (await res.json()) as { points: PriceHistoryPoint[] };
+        if (!cancelled) setHistory(body.points ?? []);
+      } catch (e) {
+        if (!cancelled) setHistoryError(e instanceof Error ? e.message : "Failed to load");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedFilmId, hideOutOfStock]);
+
+  const toggleFilm = (filmId: string) =>
+    setSelectedFilmId((id) => (id === filmId ? null : filmId));
 
   useEffect(() => {
     let cancelled = false;
@@ -176,54 +207,97 @@ export function PolaroidPage() {
             </thead>
             <tbody>
               {rows.map((f) => (
-                <tr key={f.filmId}>
-                  <td>
-                    <div className="filmName">
-                      {f.brand} {f.name}
-                      {f.iso ? <span className="pill">ISO {f.iso}</span> : null}
-                    </div>
-                    <span className="pill subtle">{f.type === "bw" ? "B&W" : "Colour"}</span>
-                    <FollowButton account={account} filmId={f.filmId} />
-                  </td>
-                  <td>
-                    <span className="muted">{cameraFit(f.filmId) ?? "—"}</span>
-                  </td>
-                  <td>
-                    <div className="offers">
-                      {f.offers.length === 0 ? (
-                        // Two different facts, and conflating them misleads: i-Type is
-                        // carried by Studio Argentique but is routinely out of stock,
-                        // which is not the same as no Canadian store selling it.
-                        <span className="muted">
-                          {hideOutOfStock
-                            ? "None in stock right now — untick “In stock only” to see prices"
-                            : "Not stocked by any tracked Canadian store"}
-                        </span>
-                      ) : (
-                        f.offers.map((o) => (
-                          <a
-                            key={`${o.storeId}:${o.url}`}
-                            className="offer"
-                            href={o.url}
-                            target="_blank"
-                            rel="noreferrer noopener"
-                            title={`Last checked: ${new Date(o.lastCheckedAt).toLocaleString()}`}
-                          >
-                            <div className="offerTop">
-                              <span className="offerPrice">{formatPerShot(o)}</span>
-                              <span className="offerStore">{o.storeName}</span>
+                <Fragment key={f.filmId}>
+                  <tr
+                    className={`clickRow${selectedFilmId === f.filmId ? " clickRowSelected" : ""}`}
+                    onClick={() => toggleFilm(f.filmId)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleFilm(f.filmId);
+                      }
+                    }}
+                    aria-label={`Price history for ${f.brand} ${f.name}`}
+                    aria-expanded={selectedFilmId === f.filmId}
+                  >
+                    <td>
+                      <div className="filmName">
+                        {f.brand} {f.name}
+                        {f.iso ? <span className="pill">ISO {f.iso}</span> : null}
+                      </div>
+                      <span className="pill subtle">{f.type === "bw" ? "B&W" : "Colour"}</span>
+                      <FollowButton account={account} filmId={f.filmId} />
+                    </td>
+                    <td>
+                      <span className="muted">{cameraFit(f.filmId) ?? "—"}</span>
+                    </td>
+                    <td>
+                      <div className="offers">
+                        {f.offers.length === 0 ? (
+                          // Two different facts, and conflating them misleads: i-Type is
+                          // carried by Studio Argentique but is routinely out of stock,
+                          // which is not the same as no Canadian store selling it.
+                          <span className="muted">
+                            {hideOutOfStock
+                              ? "None in stock right now — untick “In stock only” to see prices"
+                              : "Not stocked by any tracked Canadian store"}
+                          </span>
+                        ) : (
+                          f.offers.map((o) => (
+                            <a
+                              key={`${o.storeId}:${o.url}`}
+                              className="offer"
+                              href={o.url}
+                              target="_blank"
+                              rel="noreferrer noopener"
+                              onClick={(e) => e.stopPropagation()}
+                              title={`Last checked: ${new Date(o.lastCheckedAt).toLocaleString()}`}
+                            >
+                              <div className="offerTop">
+                                <span className="offerPrice">{formatPerShot(o)}</span>
+                                <span className="offerStore">{o.storeName}</span>
+                              </div>
+                              <div className="offerBottom">
+                                <span className="offerMeta">
+                                  {formatCad(o.priceCadCents)} · {packLabel(o)}
+                                </span>
+                              </div>
+                            </a>
+                          ))
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {selectedFilmId === f.filmId && (
+                    <tr className="filmDetailRow">
+                      <td colSpan={3} className="filmDetailCell">
+                        <div className="card filmDetailCard">
+                          <div className="detailHeader">
+                            <div>
+                              <div className="detailTitle">
+                                {f.brand} {f.name}
+                              </div>
+                              <div className="subtitle">
+                                Cheapest {hideOutOfStock ? "in-stock " : ""}offer each day, per
+                                shot — multipacks included
+                              </div>
                             </div>
-                            <div className="offerBottom">
-                              <span className="offerMeta">
-                                {formatCad(o.priceCadCents)} · {packLabel(o)}
-                              </span>
-                            </div>
-                          </a>
-                        ))
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                            <button className="btn" onClick={() => setSelectedFilmId(null)}>
+                              Close
+                            </button>
+                          </div>
+                          {historyError && (
+                            <div className="muted">Couldn’t load price history: {historyError}</div>
+                          )}
+                          {!history && !historyError && <div className="muted">Loading…</div>}
+                          {history && <PriceHistoryChart points={history} unit="per_shot" />}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>

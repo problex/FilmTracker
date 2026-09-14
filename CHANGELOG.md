@@ -24,6 +24,11 @@
   double its true price per shot.
 - Browser-driven stores skip instant film — none of them stock it, and each film they
   do not skip costs a page load.
+- **Price history for Polaroid film.** Clicking a film on `#/polaroid` opens the
+  six-month chart the 35mm page already had. `GET /api/films/:id/price-history` now
+  charts instant film **per shot** and reports which with a `unit` field (`ticket` or
+  `per_shot`); by ticket price, a five-pack coming back into stock would have drawn as a
+  price spike, and selling out as a fall. 35mm history is unchanged.
 
 ### Operations
 

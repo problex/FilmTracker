@@ -543,6 +543,11 @@ Surveyed all eight bulk-scrapable stores, ~10,000 products:
 - **Beau Photo needed its own branch**: instant film carries no `35mm` tag and sits
   outside its film categories, so it never reached the matcher.
 
+**Price history** (added 2026-09-14): rows on `#/polaroid` expand to the same chart as
+35mm. `GET /api/films/:id/price-history` looks up the film's format and, for instant,
+takes the daily minimum of price per shot — the same expression as `api/prices.ts` and
+`alerts/run.ts` — so the three stay in agreement. The response carries `unit`.
+
 ## Stores probed and rejected for instant (2026-09-08)
 
 No Canadian retailer carrying Polaroid exposes a catalogue endpoint beyond the three
