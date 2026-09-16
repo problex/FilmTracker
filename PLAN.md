@@ -190,7 +190,7 @@ Found later, while doing the work:
   against fresh single rolls, so no multipack could ever surface as a deal; fresh
   prices are now grouped by pack size, bulk flag and exposure count.
 
-## Phase 0 — Make the pipeline able to absorb more films *(prerequisite)*
+## Phase 0 — Make the pipeline able to absorb more films *(prerequisite)* ✅ done
 
 Invert the per-film loop into a per-store bulk fetch. Both platforms expose whole
 catalogs in one or two requests, which makes film count essentially free and
@@ -228,7 +228,10 @@ also unblocked Candido.
   "scrape run logs") and record budget-exceeded as a `partial` status rather than
   letting it pass unnoticed.
 
-## Phase 1 — Add widely-stocked films + expired-stock handling
+## Phase 1 — Add widely-stocked films + expired-stock handling ✅ done
+
+*All 13 films below are in `catalog/films.ts`; expiry is parsed, stored (migration 003)
+and excluded from the top-3 query.*
 
 Candidates ranked by **actual availability** across the three Shopify catalogs
 (sampled 2026-09-05), not by popularity articles.
@@ -284,7 +287,9 @@ Plan:
    `isBulk` is handled today.
 4. Add `AND l.is_expired = FALSE` to the top-3 query in `api/prices.ts`.
 
-## Phase 1.5 — Expired-film deals callout
+## Phase 1.5 — Expired-film deals callout ✅ done
+
+*`GET /api/deals/expired`, shown as a callout in `web/src/ui/App.tsx`.*
 
 Turn the flag into a feature: `GET /api/deals/expired` returning expired listings
 joined against the cheapest **fresh** price for the same film, with a discount %.
@@ -301,7 +306,9 @@ Expect this to be quiet at first: 5 of those 6 expired listings are for films *n
 tracked* (CineStill 50D, Phoenix 200, T-MAX 3200, Fomapan 100/400). The box fills up
 as Phase 1/2 land.
 
-## Phase 2 — Second-tier films (2 of 3 stores)
+## Phase 2 — Second-tier films (2 of 3 stores) ✅ done
+
+*Every film listed below is in `catalog/films.ts`.*
 
 Kentmere PAN 100 / PAN 200, Fujifilm Provia 100F, Velvia 50, Acros 100 II,
 Harman RED 125, Kodak Pro Image 100, Kodacolor 100 / 200, Fomapan 100 / 200 / 400,
@@ -357,7 +364,7 @@ and 800 as well, so it now has two sources.
 - Kerrisdale still truncates and uses a search-page workaround; it is the remaining
   browser-driven store alongside Dons Photo. `scripts/diagnose-kerrisdale.ts` exists.
 
-### New store: FilmWarehouse ✅ ready to add
+### New store: FilmWarehouse ✅ added (`stores/filmWarehouse.ts`)
 
 **`filmwarehouse.ca`** (Great Canadian Film Warehouse) — WooCommerce with the Store
 API exposed, 232 products. **Verified working against the existing
@@ -446,9 +453,9 @@ match a film alias, but discovery has no such filter and stores sell far more 35
 lenses than 35mm film. Unfiltered the report was 349 rows, mostly lenses, developing
 services and film holders; filtered it is 173 rows of actual film.
 
-First run suggests the catalogue could roughly double: Adox, AgfaPhoto APX, Ferrania
+First run suggested the catalogue could roughly double, and it did (115 films): Adox, AgfaPhoto APX, Ferrania
 P30/P33, Film Washi, Flic Film Vision3 respools and Cine Colour, Reflx Lab, Revolog,
-Rollei RPX/Retro/Superpan, Shanghai GP3, Ultrafine Xtreme.
+Rollei RPX/Retro/Superpan, Shanghai GP3, Ultrafine Xtreme — all now tracked.
 
 ### 4d. Scheduled repair agent — out-of-app, PR only ✅ tested end to end 2026-09-08
 
@@ -642,12 +649,12 @@ is `Graph token request failed: 401`.
 ---
 
 ## Milestones
-1. **Scaffold app + DB schema**
+1. **Scaffold app + DB schema** ✅
    - Monorepo, Postgres, migrations, API skeleton, minimal UI
 2. **Implement 2 stores end-to-end** ✅
    - The Camera Store adapter
    - Beau Photo adapter (WooCommerce variation parsing)
-3. **Add remaining 8 stores**
+3. **Add remaining 8 stores** ✅ — 10 scraping; Lord Photo has no working mechanism
    - One store at a time, with fixtures/tests per store
    - ✅ Fixtures and tests now exist — see *Phase 4b*
 4. **Reliability**
