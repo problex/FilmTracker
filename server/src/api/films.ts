@@ -37,7 +37,14 @@ filmsRouter.get("/", async (_req, res) => {
   return res.json({ films: result.rows });
 });
 
-/** Lowest in-stock snapshot price per calendar day (UTC), last 6 months, matching variant filter. */
+/**
+ * Lowest in-stock snapshot price per calendar day (UTC), last 6 months, matching variant filter.
+ *
+ * Instant film is measured per shot, as /api/prices ranks it: a pack is 8 shots and a
+ * multipack multiplies that, so the lowest *ticket* price would chart the cheapest
+ * single pack and hide a five-pack that is better value, and a multipack coming into
+ * stock would read as a price change. `unit` tells the client which measure it got.
+ */
 filmsRouter.get("/:id/price-history", async (req, res) => {
   const parsed = priceHistoryQuerySchema.safeParse(req.query);
   if (!parsed.success) {
@@ -46,6 +53,21 @@ filmsRouter.get("/:id/price-history", async (req, res) => {
   const { inStock: requireInStock, variant } = parsed.data;
   const filmId = req.params.id;
   const db = await dbPromise;
+
+  const filmResult = await db.query<{ format: string }>(
+    db.dialect === "postgres"
+      ? "SELECT format FROM films WHERE id = $1"
+      : "SELECT format FROM films WHERE id = ?",
+    [filmId]
+  );
+  const unit: "ticket" | "per_shot" =
+    filmResult.rows[0]?.format === "instant" ? "per_shot" : "ticket";
+  // Same per-shot measure as the instant ordering in api/prices.ts.
+  const priceExpr =
+    unit === "per_shot"
+      ? `ps.price_cad_cents * 1.0
+           / (COALESCE(l.exposures, 8) * COALESCE(NULLIF(l.pack_size, 0), 1))`
+      : "ps.price_cad_cents";
 
   const variantClause =
     db.dialect === "postgres"
@@ -73,7 +95,7 @@ filmsRouter.get("/:id/price-history", async (req, res) => {
       FROM (
         SELECT
           date_trunc('day', ps.captured_at AT TIME ZONE 'UTC') AS day_start,
-          MIN(ps.price_cad_cents)::integer AS min_price_cad_cents
+          ROUND(MIN(${priceExpr}))::integer AS min_price_cad_cents
         FROM price_snapshots ps
         JOIN listings l ON l.id = ps.listing_id
         WHERE l.film_id = $1
@@ -90,6 +112,7 @@ filmsRouter.get("/:id/price-history", async (req, res) => {
       filmId,
       variant,
       requireInStock,
+      unit,
       points: historyResult.rows.map((r) => ({
         date: r.day,
         minPriceCadCents: r.min_price_cad_cents,
@@ -102,7 +125,7 @@ filmsRouter.get("/:id/price-history", async (req, res) => {
     `
     SELECT
       date(ps.captured_at) AS day,
-      MIN(ps.price_cad_cents) AS min_price_cad_cents
+      CAST(ROUND(MIN(${priceExpr})) AS INTEGER) AS min_price_cad_cents
     FROM price_snapshots ps
     JOIN listings l ON l.id = ps.listing_id
     WHERE l.film_id = ?
@@ -119,6 +142,7 @@ filmsRouter.get("/:id/price-history", async (req, res) => {
     filmId,
     variant,
     requireInStock,
+    unit,
     points: historyResult.rows.map((r) => ({
       date: r.day,
       minPriceCadCents: r.min_price_cad_cents,

@@ -9,7 +9,18 @@ function formatCad(cents: number) {
   );
 }
 
-export function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
+/** "per_shot" for instant film, whose history the API measures per shot. */
+export type PriceHistoryUnit = "ticket" | "per_shot";
+
+export function PriceHistoryChart({
+  points,
+  unit = "ticket",
+}: {
+  points: PriceHistoryPoint[];
+  unit?: PriceHistoryUnit;
+}) {
+  const suffix = unit === "per_shot" ? "/shot" : "";
+
   if (points.length === 0) {
     return (
       <p className="muted chartEmpty">
@@ -34,7 +45,9 @@ export function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
   const pMin = Math.min(...prices);
   const pMax = Math.max(...prices);
   const ySpan = Math.max(pMax - pMin, 1);
-  const yPad = Math.max(Math.round(ySpan * 0.08), 50);
+  // At least 50¢ of headroom, unless the price itself is only a few dollars — a
+  // $3.62/shot line would otherwise sit in a band most of a dollar wide.
+  const yPad = Math.max(Math.round(ySpan * 0.08), Math.min(50, Math.round(pMax * 0.05)), 1);
   const yLo = pMin - yPad;
   const yHi = pMax + yPad;
 
@@ -56,7 +69,10 @@ export function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
 
   return (
     <div className="chartWrap">
-      <div className="chartTitle">Lowest price by day (last 6 months)</div>
+      <div className="chartTitle">
+        {unit === "per_shot" ? "Lowest price per shot by day" : "Lowest price by day"} (last 6
+        months)
+      </div>
       <svg className="chartSvg" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Price history chart">
         <line
           x1={padL}
@@ -74,9 +90,11 @@ export function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
         />
         <text x={padL - 4} y={padT + 4} className="chartAxisLabel" textAnchor="end">
           {formatCad(yHi)}
+          {suffix}
         </text>
         <text x={padL - 4} y={padT + innerH} className="chartAxisLabel" textAnchor="end">
           {formatCad(yLo)}
+          {suffix}
         </text>
         <path d={lineD} className="chartLine" fill="none" />
         {points.map((p, i) => (
@@ -87,7 +105,7 @@ export function PriceHistoryChart({ points }: { points: PriceHistoryPoint[] }) {
             r={3.5}
             className="chartDot"
           >
-            <title>{`${p.date}: ${formatCad(p.minPriceCadCents)}`}</title>
+            <title>{`${p.date}: ${formatCad(p.minPriceCadCents)}${suffix}`}</title>
           </circle>
         ))}
         <text x={padL} y={h - 8} className="chartAxisLabel">
