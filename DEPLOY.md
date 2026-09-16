@@ -171,8 +171,15 @@ sudo -n $DOCKER logs filmtracker-server-1 --tail 60 | grep callback
 5. Put `GRAPH_TENANT_ID`, `GRAPH_CLIENT_ID`, `GRAPH_CLIENT_SECRET` and `GRAPH_SENDER` (`info@problex.com`)
    in the NAS `.env`, then redeploy.
 
-Confirm which transport is live from the startup log — it prints
-`Mailer: microsoft-graph (as ...)`, `Mailer: resend`, or `Mailer: console`.
+The transport is chosen the first time mail is sent, not at startup, so a fresh log
+says nothing about it. After the first sign-in link or alert, the log carries
+`Mailer: microsoft-graph (as ...)`, `Mailer: resend`, or `Mailer: console`:
+
+```bash
+sudo -n $DOCKER logs filmtracker-server-1 2>&1 | grep Mailer:
+```
+
+To check straight after a deploy, request a sign-in link at `#/account` first.
 
 **The client secret expires**, typically in 12-24 months, and alerts simply stop when it
 does. The symptom is `Graph token request failed: 401` in the logs. Certificate
