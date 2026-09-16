@@ -23,12 +23,29 @@ async function main() {
     return;
   }
 
-  // For v1 simplicity, we run all migrations (idempotent CREATE IF NOT EXISTS).
+  // Postgres migrations are idempotent (CREATE/ADD COLUMN IF NOT EXISTS), so every
+  // file runs on every start. SQLite has no ADD COLUMN IF NOT EXISTS, so a second run
+  // of 002 would fail on the duplicate column: record what has been applied instead.
+  const tracked = db.dialect === "sqlite";
+  const applied = new Set<string>();
+  if (tracked) {
+    await db.exec(
+      `CREATE TABLE IF NOT EXISTS schema_migrations (
+         filename TEXT PRIMARY KEY,
+         applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+       )`,
+    );
+    const { rows } = await db.query<{ filename: string }>("SELECT filename FROM schema_migrations");
+    for (const row of rows) applied.add(row.filename);
+  }
+
   for (const file of files) {
+    if (applied.has(file)) continue;
     const fullPath = path.join(migrationsDir, file);
     const sql = await readFile(fullPath, "utf8");
     console.log(`Running ${file}...`);
-    await db.query(sql);
+    await db.exec(sql);
+    if (tracked) await db.query("INSERT INTO schema_migrations (filename) VALUES ($1)", [file]);
   }
 
   console.log("Migrations complete.");
@@ -43,4 +60,3 @@ main()
     const db = await dbPromise;
     await db.end();
   });
-

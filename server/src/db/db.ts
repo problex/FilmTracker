@@ -6,6 +6,8 @@ export type QueryResult<Row> = { rows: Row[] };
 export type DbClient = {
   dialect: "postgres" | "sqlite";
   query<Row = unknown>(sql: string, params?: unknown[]): Promise<QueryResult<Row>>;
+  /** Run a script of one or more statements, with no parameters (e.g. a migration file). */
+  exec(sql: string): Promise<void>;
   end(): Promise<void>;
 };
 
@@ -46,6 +48,17 @@ async function createSqliteClient(databaseUrl: string): Promise<DbClient> {
       stmt.run(params);
       return { rows: [] as Row[] };
     },
+    async exec(sql: string) {
+      // prepare() accepts exactly one statement; exec() runs a whole script.
+      try {
+        sqlite.exec(sql);
+      } catch (err) {
+        // A script that fails between its own BEGIN and COMMIT leaves the
+        // transaction open on this connection.
+        if (sqlite.inTransaction) sqlite.exec("ROLLBACK");
+        throw err;
+      }
+    },
     async end() {
       sqlite.close();
     },
@@ -62,6 +75,10 @@ async function createPostgresClient(databaseUrl: string): Promise<DbClient> {
     async query<Row>(sql: string, params: unknown[] = []) {
       const result = await pool.query(sql, params);
       return { rows: result.rows as Row[] };
+    },
+    async exec(sql: string) {
+      // With no parameters, pg sends a simple query, which allows many statements.
+      await pool.query(sql);
     },
     async end() {
       await pool.end();

@@ -636,10 +636,17 @@ is `Graph token request failed: 401`.
 
 ## Known gaps
 
-- **The SQLite dev path does not work, and predates this.** `better-sqlite3` rejects
-  multi-statement SQL, so `scripts/migrate.ts` fails on `001_init.sql` and
-  `migrations_sqlite/` cannot be applied. Everything here was verified against real
-  Postgres instead. Either split statements in the migrator or drop the SQLite path.
+- **The SQLite dev path does not work, and predates this.** Everything here was verified
+  against real Postgres instead.
+  - ✅ *Migrations (2026-09-16).* `better-sqlite3` rejected multi-statement SQL, so
+    `migrate.ts` failed on `001_init.sql`. Files now run through `DbClient.exec()`, and
+    SQLite records applied files in `schema_migrations`, because its `ADD COLUMN` has
+    no `IF NOT EXISTS` and a second run would fail. Postgres still re-runs every file.
+  - **Queries still fail.** `GET /api/prices` binds JS booleans, which `better-sqlite3`
+    refuses ("SQLite3 can only bind numbers, strings, bigints, buffers, and null"), and
+    Postgres-only SQL elsewhere is untested. `/api/health` and `/api/films` work. Either
+    convert parameters in the SQLite client and work through the remaining routes, or
+    drop the SQLite path.
 - Rate limiting on `request-link` is in memory, so it resets when the container
   restarts. Honest for one container; wrong the moment there are two.
 - **Browser push was planned and dropped.** Email through the tenant covers the need,
