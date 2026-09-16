@@ -53,94 +53,127 @@ pricesRouter.get("/", async (req, res) => {
      ORDER BY brand, name, iso NULLS LAST`
   );
 
-  const data: FilmWithTopOffersDto[] = [];
+  /**
+   * Instant film ranks by price per shot, not by ticket price.
+   *
+   * A pack is 8 shots and a multipack multiplies that, so the best value is
+   * routinely the most expensive listing — Studio Argentique's five-pack is $144.99
+   * and $3.62/shot against $31.99 and $4.00/shot for a single. Ranking those three
+   * by ticket price drops every multipack before the page can rank them, which
+   * would leave the page sorting by per-shot price over a set already filtered by a
+   * different measure, and quietly hide the actual best deal.
+   *
+   * 35mm keeps ordering by ticket price: its multipack comparison lives in
+   * /api/deals/multipacks, and changing it here would change the main list.
+   */
+  const orderBy =
+    format === "instant"
+      ? `latest.price_cad_cents * 1.0
+           / (COALESCE(latest.exposures, 8) * COALESCE(NULLIF(latest.pack_size, 0), 1)) ASC`
+      : "latest.price_cad_cents ASC";
 
-  for (const f of filmsResult.rows) {
-    if ((f.format === "instant" ? "instant" : "35mm") !== format) continue;
-    if (filmType !== "any" && f.type !== filmType) continue;
+  const seenSinceSql =
+    db.dialect === "postgres" ? "NOW() - INTERVAL '2 days'" : "datetime('now','-2 days')";
 
-    /**
-     * Instant film ranks by price per shot, not by ticket price.
-     *
-     * A pack is 8 shots and a multipack multiplies that, so the best value is
-     * routinely the most expensive listing — Studio Argentique's five-pack is $144.99
-     * and $3.62/shot against $31.99 and $4.00/shot for a single. Ranking those three
-     * by ticket price drops every multipack before the page can rank them, which
-     * would leave the page sorting by per-shot price over a set already filtered by a
-     * different measure, and quietly hide the actual best deal.
-     *
-     * 35mm keeps ordering by ticket price: its multipack comparison lives in
-     * /api/deals/multipacks, and changing it here would change the main list.
-     */
-    const orderBy =
-      f.format === "instant"
-        ? `latest.price_cad_cents * 1.0
-             / (COALESCE(l.exposures, 8) * COALESCE(NULLIF(l.pack_size, 0), 1)) ASC`
-        : "latest.price_cad_cents ASC";
-
-    // Latest snapshot per listing, then top 3 cheapest.
-    const seenSinceSql =
-      db.dialect === "postgres"
-        ? "NOW() - INTERVAL '2 days'"
-        : "datetime('now','-2 days')";
-
-    const offersResult = await db.query<{
-      store_id: string;
-      store_name: string;
-      price_cad_cents: number;
-      url: string;
-      pack_size: number | null;
-      exposures: 8 | 16 | 24 | 36 | null;
-      is_bulk: boolean | number;
-      captured_at: string;
-      in_stock: boolean | number;
-    }>(
-      `
-      WITH latest AS (
-        SELECT listing_id, price_cad_cents, in_stock, captured_at
-        FROM (
-          SELECT
-            ps.listing_id,
-            ps.price_cad_cents,
-            ps.in_stock,
-            ps.captured_at,
-            ROW_NUMBER() OVER (PARTITION BY ps.listing_id ORDER BY ps.captured_at DESC) AS rn
-          FROM price_snapshots ps
-          JOIN listings l ON l.id = ps.listing_id
-          WHERE l.film_id = $1
-        ) t
-        WHERE rn = 1
-      )
+  // One query for every film rather than one per film: the page lists ~115 films, and
+  // the round trips alone cost more than the queries. Each listing's newest snapshot
+  // is found through the (listing_id, captured_at) index, so the cost follows the
+  // number of listings and not the length of their price history.
+  const offersResult = await db.query<{
+    film_id: string;
+    store_id: string;
+    store_name: string;
+    price_cad_cents: number;
+    url: string;
+    pack_size: number | null;
+    exposures: 8 | 16 | 24 | 36 | null;
+    is_bulk: boolean | number;
+    captured_at: string;
+    in_stock: boolean | number;
+  }>(
+    `
+    WITH latest AS (
       SELECT
-        s.id AS store_id,
-        s.name AS store_name,
-        latest.price_cad_cents,
+        l.id AS listing_id,
+        l.film_id,
+        l.store_id,
         l.url,
         l.pack_size,
         l.exposures,
         l.is_bulk,
-        latest.captured_at,
-        latest.in_stock
-      FROM latest
-      JOIN listings l ON l.id = latest.listing_id
-      JOIN stores s ON s.id = l.store_id
-      WHERE l.last_seen_at >= ${seenSinceSql}
+        ps.price_cad_cents,
+        ps.in_stock,
+        ps.captured_at
+      FROM listings l
+      JOIN films f ON f.id = l.film_id
+      JOIN price_snapshots ps ON ps.id = (
+        SELECT p2.id
+        FROM price_snapshots p2
+        WHERE p2.listing_id = l.id
+        ORDER BY p2.captured_at DESC, p2.id DESC
+        LIMIT 1
+      )
+      WHERE f.enabled = TRUE
+        AND f.format = $4
+        AND ($3 = 'any' OR f.type = $3)
+        AND l.last_seen_at >= ${seenSinceSql}
         -- Expired stock is genuinely cheap; it would win the lowest-price
         -- display and read as fresh. Surfaced separately via /api/deals/expired.
         AND l.is_expired = FALSE
-        AND (($2 = FALSE) OR (latest.in_stock = TRUE))
+    ),
+    ranked AS (
+      SELECT
+        latest.*,
+        ROW_NUMBER() OVER (PARTITION BY latest.film_id ORDER BY ${orderBy}) AS rn
+      FROM latest
+      WHERE (($1 = FALSE) OR (latest.in_stock = TRUE))
         AND (
-          $3 = 'any' OR
-          ($3 = 'bulk' AND l.is_bulk = TRUE) OR
-          ($3 = 'multipack' AND l.pack_size IS NOT NULL AND l.pack_size > 1) OR
-          ($3 = '36' AND l.exposures = 36 AND (l.pack_size IS NULL OR l.pack_size <= 1) AND l.is_bulk = FALSE) OR
-          ($3 = '24' AND l.exposures = 24 AND (l.pack_size IS NULL OR l.pack_size <= 1) AND l.is_bulk = FALSE)
+          $2 = 'any' OR
+          ($2 = 'bulk' AND latest.is_bulk = TRUE) OR
+          ($2 = 'multipack' AND latest.pack_size IS NOT NULL AND latest.pack_size > 1) OR
+          ($2 = '36' AND latest.exposures = 36 AND (latest.pack_size IS NULL OR latest.pack_size <= 1) AND latest.is_bulk = FALSE) OR
+          ($2 = '24' AND latest.exposures = 24 AND (latest.pack_size IS NULL OR latest.pack_size <= 1) AND latest.is_bulk = FALSE)
         )
-      ORDER BY ${orderBy}
-      LIMIT 3
-      `,
-      [f.id, inStock, variant]
-    );
+    )
+    SELECT
+      ranked.film_id,
+      s.id AS store_id,
+      s.name AS store_name,
+      ranked.price_cad_cents,
+      ranked.url,
+      ranked.pack_size,
+      ranked.exposures,
+      ranked.is_bulk,
+      ranked.captured_at,
+      ranked.in_stock
+    FROM ranked
+    JOIN stores s ON s.id = ranked.store_id
+    WHERE ranked.rn <= 3
+    ORDER BY ranked.film_id, ranked.rn
+    `,
+    [inStock, variant, filmType, format]
+  );
+
+  const offersByFilm = new Map<string, FilmWithTopOffersDto["offers"]>();
+  for (const o of offersResult.rows) {
+    let offers = offersByFilm.get(o.film_id);
+    if (!offers) offersByFilm.set(o.film_id, (offers = []));
+    offers.push({
+      storeId: o.store_id,
+      storeName: o.store_name,
+      priceCadCents: o.price_cad_cents,
+      url: o.url,
+      packSize: o.pack_size,
+      exposures: o.exposures,
+      isBulk: Boolean(o.is_bulk),
+      lastCheckedAt: o.captured_at,
+    });
+  }
+
+  const data: FilmWithTopOffersDto[] = [];
+  for (const f of filmsResult.rows) {
+    if ((f.format === "instant" ? "instant" : "35mm") !== format) continue;
+    if (filmType !== "any" && f.type !== filmType) continue;
 
     data.push({
       filmId: f.id,
@@ -151,16 +184,7 @@ pricesRouter.get("/", async (req, res) => {
       process: f.process,
       tier: f.tier === "extended" ? "extended" : "core",
       format: f.format === "instant" ? "instant" : "35mm",
-      offers: offersResult.rows.map((o) => ({
-        storeId: o.store_id,
-        storeName: o.store_name,
-        priceCadCents: o.price_cad_cents,
-        url: o.url,
-        packSize: o.pack_size,
-        exposures: o.exposures,
-        isBulk: Boolean(o.is_bulk),
-        lastCheckedAt: o.captured_at,
-      })),
+      offers: offersByFilm.get(f.id) ?? [],
     });
   }
 
